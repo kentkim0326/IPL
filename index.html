@@ -21,68 +21,58 @@
 
 <!-- Reown AppKit (WalletConnect + Coinbase + 500 wallets) -->
 <script type="module">
-try {
-const { createAppKit } = await import('https://esm.sh/@reown/appkit@1.6.8')
-const { EthersAdapter } = await import('https://esm.sh/@reown/appkit-adapter-ethers@1.6.8')
-const { baseSepolia } = await import('https://esm.sh/@reown/appkit/networks')
+async function loadWallet() {
+  try {
+    // 단일 번들로 로드 (esm.sh ?bundle — 의존성 하나로 묶어 mobile Safari 안정성 ↑)
+    const appkitMod = await import('https://esm.sh/@reown/appkit@1.6.8?bundle');
+    const ethersMod = await import('https://esm.sh/@reown/appkit-adapter-ethers@1.6.8?bundle');
+    const netMod = await import('https://esm.sh/@reown/appkit@1.6.8/networks?bundle');
+    const createAppKit = appkitMod.createAppKit;
+    const EthersAdapter = ethersMod.EthersAdapter;
+    const baseSepolia = netMod.baseSepolia;
 
-const projectId = '782d64073f3c6fbe72ab5f8e778ba8e7'
+    const projectId = '782d64073f3c6fbe72ab5f8e778ba8e7';
+    const metadata = {
+      name: 'IPL Holdem',
+      description: 'International Poker League — Anonymous Crypto Poker',
+      url: 'https://ipl-beta-khaki.vercel.app',
+      icons: ['https://ipl-beta-khaki.vercel.app/favicon.ico']
+    };
 
-const metadata = {
-  name: 'IPL Holdem',
-  description: 'International Poker League — Anonymous Crypto Poker',
-  url: 'https://ipl-beta-khaki.vercel.app',
-  icons: ['https://ipl-beta-khaki.vercel.app/favicon.ico']
-}
+    const appKit = createAppKit({
+      adapters: [new EthersAdapter()],
+      networks: [baseSepolia],
+      defaultNetwork: baseSepolia,
+      projectId,
+      metadata,
+      features: { analytics: false, email: true, socials: ['google','apple'], emailShowWallets: true },
+      themeMode: 'dark',
+      themeVariables: { '--w3m-accent': '#c9a84c', '--w3m-border-radius-master': '4px' }
+    });
 
-const appKit = createAppKit({
-  adapters: [new EthersAdapter()],
-  networks: [baseSepolia],
-  defaultNetwork: baseSepolia,
-  projectId,
-  metadata,
-  features: {
-    analytics: false,
-    email: true,        // 이메일 로그인 (Coinbase Smart Wallet 유사)
-    socials: ['google', 'apple'],  // 소셜 로그인
-    emailShowWallets: true
-  },
-  themeMode: 'dark',
-  themeVariables: {
-    '--w3m-accent': '#c9a84c',
-    '--w3m-border-radius-master': '4px'
+    window.iplAppKit = appKit;
+    appKit.subscribeAccount(async (account) => {
+      if (account.isConnected && account.address) window.onWalletConnected(account.address);
+      else window.onWalletDisconnected && window.onWalletDisconnected();
+    });
+    window.openWeb3Modal = () => appKit.open();
+    window.getAppKitProvider = () => appKit.getWalletProvider();
+    window.iplWalletReady = true;
+    console.log('✅ Reown AppKit loaded');
+  } catch (err) {
+    console.error('❌ AppKit load failed:', err);
+    window.iplWalletError = String((err && err.message) || err);
   }
-})
-
-// 전역 노출 — 기존 코드에서 호출
-window.iplAppKit = appKit
-
-// 연결 상태 구독
-appKit.subscribeAccount(async (account) => {
-  if (account.isConnected && account.address) {
-    window.onWalletConnected(account.address)
-  } else {
-    window.onWalletDisconnected && window.onWalletDisconnected()
-  }
-})
-
-// 연결 함수 전역 노출
-window.openWeb3Modal = () => appKit.open()
-window.getAppKitProvider = () => appKit.getWalletProvider()
-window.iplWalletReady = true
-console.log('✅ Reown AppKit loaded')
-} catch (err) {
-  console.error('❌ AppKit load failed:', err)
-  window.iplWalletError = String(err && err.message || err)
 }
+loadWallet();
 </script>
 <script>
-// AppKit 로드 실패 감지 (5초 후에도 없으면 경고)
 setTimeout(() => {
-  if (!window.openWeb3Modal) {
-    console.error('❌ Reown AppKit did not load — check network/domain allowlist');
+  if (!window.openWeb3Modal && !window.iplWalletError) {
+    window.iplWalletError = 'Timed out loading connector (network/CDN blocked?)';
+    console.error('❌ Reown AppKit timeout');
   }
-}, 5000);
+}, 12000);
 </script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap');
@@ -1473,7 +1463,7 @@ function connectWallet() {
       return;
     }
     tries++;
-    if (tries <= 25) {
+    if (tries <= 35) {
       if (tries === 1) showToast('⏳ Loading wallet connector...');
       setTimeout(tryOpen, 400);
     } else {
