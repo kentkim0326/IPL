@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IPL Holdem</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  :root {
+    --felt: #0a1f0e;
+    --felt-light: #112516;
+    --gold: #c9a84c;
+    --gold-dim: #7a6330;
+    --chip-red: #c0392b;
+    --chip-blue: #2471a3;
+    --white: #f0ece0;
+    --grey: #8a8a8a;
+    --dark: #060e07;
+    --card-bg: #1a1a2e;
+    --neon: #00ff88;
+    --neon-dim: rgba(0,255,136,0.08);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--dark);
+    color: var(--white);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── PAGES ── */
+  .page { display: none; min-height: 100vh; }
+  .page.active { display: flex; flex-direction: column; }
+
+  /* ── NAV ── */
+  nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    border-bottom: 1px solid rgba(201,168,76,0.2);
+    background: rgba(6,14,7,0.95);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 3px;
+    color: var(--gold);
+  }
+  .logo span { color: var(--neon); }
+  nav .nav-links { display: flex; gap: 8px; }
+  .nav-btn {
+    background: none; border: 1px solid var(--gold-dim);
+    color: var(--white); padding: 8px 16px;
+    border-radius: 4px; cursor: pointer;
+    font-family: 'Inter', sans-serif; font-size: 13px;
+    transition: all 0.2s;
+  }
+  .nav-btn:hover { border-color: var(--gold); color: var(--gold); }
+  .nav-btn.primary {
+    background: var(--gold); color: var(--dark);
+    border-color: var(--gold); font-weight: 600;
+  }
+  .nav-btn.primary:hover { background: #e0b85a; }
+
+  /* ── AGE GATE ── */
+  #age-gate {
+    background: radial-gradient(ellipse at center, #0d2010 0%, var(--dark) 70%);
+    justify-content: center; align-items: center;
+    text-align: center; padding: 40px 24px;
+  }
+  .age-gate-inner { max-width: 440px; }
+  .age-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 64px; letter-spacing: 6px;
+    color: var(--gold); line-height: 1;
+    margin-bottom: 8px;
+  }
+  .age-logo span { color: var(--neon); }
+  .age-sub {
+    font-size: 12px; letter-spacing: 4px;
+    color: var(--grey); text-transform: uppercase;
+    margin-bottom: 48px;
+  }
+  .cards-display {
+    display: flex; justify-content: center; gap: -8px;
+    margin-bottom: 40px; position: relative; height: 100px;
+  }
+  .card-icon {
+    width: 64px; height: 90px;
+    background: var(--white); border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 32px; position: absolute;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+  }
+  .card-icon:nth-child(1) { left: 50%; transform: translateX(-120px) rotate(-12deg); }
+  .card-icon:nth-child(2) { left: 50%; transform: translateX(-60px) rotate(-6deg); z-index: 1; }
+  .card-icon:nth-child(3) { left: 50%; transform: translateX(0px) rotate(0deg); z-index: 2; }
+  .card-icon:nth-child(4) { left: 50%; transform: translateX(60px) rotate(6deg); z-index: 1; }
+  .card-icon:nth-child(5) { left: 50%; transform: translateX(120px) rotate(12deg); }
+
+  .age-question {
+    font-size: 20px; font-weight: 300;
+    margin-bottom: 8px; color: var(--white);
+  }
+  .age-disclaimer {
+    font-size: 12px; color: var(--grey);
+    margin-bottom: 32px; line-height: 1.6;
+  }
+  .age-buttons { display: flex; flex-direction: column; gap: 12px; }
+  .btn-enter {
+    background: linear-gradient(135deg, var(--gold), #a07830);
+    color: var(--dark); border: none;
+    padding: 18px; border-radius: 8px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px; letter-spacing: 3px;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .btn-enter:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(201,168,76,0.4); }
+  .btn-exit {
+    background: none; border: 1px solid #444;
+    color: var(--grey); padding: 14px;
+    border-radius: 8px; font-size: 14px;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .btn-exit:hover { border-color: var(--chip-red); color: var(--chip-red); }
+  .age-legal {
+    margin-top: 24px; font-size: 11px;
+    color: #555; line-height: 1.6;
+  }
+
+  /* ── LOBBY ── */
+  #lobby { background: var(--dark); }
+  .lobby-body { flex: 1; padding: 24px; max-width: 900px; margin: 0 auto; width: 100%; }
+
+  .wallet-bar {
+    background: var(--felt-light);
+    border: 1px solid rgba(201,168,76,0.2);
+    border-radius: 12px; padding: 16px 20px;
+    display: flex; justify-content: space-between;
+    align-items: center; margin-bottom: 24px;
+  }
+  .wallet-info { display: flex; align-items: center; gap: 12px; }
+  .flag-nick { display: flex; align-items: center; gap: 8px; }
+  .flag { font-size: 24px; }
+  .nickname { font-weight: 600; font-size: 16px; }
+  .wallet-addr {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; color: var(--grey);
+  }
+  .balance {
+    text-align: right;
+  }
+  .balance-amount {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 22px; color: var(--neon); font-weight: 600;
+  }
+  .balance-label { font-size: 11px; color: var(--grey); }
+
+  .section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px; letter-spacing: 3px;
+    color: var(--gold); margin-bottom: 16px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-title .dot {
+    width: 6px; height: 6px;
+    background: var(--neon); border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* Tables */
+  .table-grid { display: flex; flex-direction: column; gap: 8px; margin-bottom: 32px; }
+  .table-row {
+    background: var(--felt-light);
+    border: 1px solid rgba(201,168,76,0.15);
+    border-radius: 10px; padding: 14px 18px;
+    display: flex; align-items: center; gap: 16px;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .table-row:hover {
+    border-color: var(--gold);
+    background: rgba(201,168,76,0.08);
+  }
+  .table-type {
+    background: var(--gold); color: var(--dark);
+    font-size: 10px; font-weight: 700;
+    padding: 3px 8px; border-radius: 4px;
+    letter-spacing: 1px; min-width: 60px; text-align: center;
+  }
+  .table-type.sng { background: var(--chip-blue); color: var(--white); }
+  .table-type.heads { background: var(--chip-red); color: var(--white); }
+  .table-name { flex: 1; font-weight: 500; font-size: 15px; }
+  .table-stakes {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px; color: var(--neon);
+  }
+  .table-players { font-size: 13px; color: var(--grey); min-width: 60px; text-align: right; }
+  .join-btn {
+    background: var(--gold); color: var(--dark);
+    border: none; padding: 8px 18px;
+    border-radius: 6px; font-weight: 700;
+    font-size: 13px; cursor: pointer;
+    transition: all 0.2s;
+  }
+  .join-btn:hover { background: #e0b85a; }
+
+  /* Leaderboard */
+  .leader-list { display: flex; flex-direction: column; gap: 8px; }
+  .leader-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px;
+    background: var(--felt-light);
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+  .leader-rank {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; color: var(--grey);
+    min-width: 28px;
+  }
+  .leader-rank.top { color: var(--gold); font-weight: 700; }
+  .leader-flag { font-size: 20px; }
+  .leader-name { flex: 1; font-weight: 500; font-size: 14px; }
+  .leader-profit {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px; color: var(--neon);
+  }
+  .leader-badge {
+    font-size: 11px; background: rgba(201,168,76,0.15);
+    color: var(--gold); padding: 2px 8px; border-radius: 12px;
+  }
+
+  /* ── GAME TABLE ── */
+  #game-table { background: #060e07; }
+  .game-body { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 16px; }
+
+  .poker-table {
+    width: 100%; max-width: 700px;
+    background: radial-gradient(ellipse, #1a5c2a 0%, #0f3d1a 60%, #0a2e13 100%);
+    border-radius: 160px;
+    border: 12px solid #5c3a1e;
+    outline: 4px solid #2a1a0a;
+    padding: 40px 60px;
+    position: relative;
+    min-height: 340px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    margin-bottom: 16px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.8), inset 0 2px 8px rgba(255,255,255,0.05);
+  }
+
+  /* Players around table */
+  .player-seat {
+    position: absolute;
+    display: flex; flex-direction: column;
+    align-items: center; gap: 4px;
+  }
+  .seat-1 { top: -50px; left: 50%; transform: translateX(-50%); }
+  .seat-2 { top: 10px; right: -20px; }
+  .seat-3 { bottom: 10px; right: -20px; }
+  .seat-4 { bottom: -50px; left: 50%; transform: translateX(-50%); }
+  .seat-5 { bottom: 10px; left: -20px; }
+  .seat-6 { top: 10px; left: -20px; }
+
+  .player-avatar {
+    width: 44px; height: 44px;
+    background: var(--card-bg);
+    border-radius: 50%;
+    border: 2px solid var(--gold-dim);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+  }
+  .player-avatar.active { border-color: var(--neon); box-shadow: 0 0 12px rgba(0,255,136,0.4); }
+  .player-avatar.you { border-color: var(--gold); }
+  .player-info { text-align: center; }
+  .player-nick { font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .player-stack {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; color: var(--neon);
+  }
+
+  /* Community cards */
+  .community-cards {
+    display: flex; gap: 8px; margin-bottom: 16px;
+  }
+  .card {
+    width: 48px; height: 68px;
+    background: var(--white); border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    color: #333;
+  }
+  .card.red { color: var(--chip-red); }
+  .card.hidden {
+    background: linear-gradient(135deg, #1a237e, #283593);
+    color: transparent; font-size: 0;
+  }
+
+  .pot-display {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px; color: var(--gold);
+    background: rgba(0,0,0,0.4);
+    padding: 6px 16px; border-radius: 20px;
+    margin-bottom: 8px;
+  }
+
+  /* Hole cards */
+  .hole-cards {
+    display: flex; gap: 8px; margin-top: 8px;
+  }
+  .hole-card {
+    width: 56px; height: 80px;
+    background: var(--white); border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+  }
+  .hole-card.red { color: var(--chip-red); }
+
+  /* Action buttons */
+  .action-bar {
+    display: flex; gap: 8px; width: 100%; max-width: 700px;
+    margin-bottom: 16px;
+  }
+  .act-btn {
+    flex: 1; padding: 14px 8px;
+    border: none; border-radius: 8px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px; letter-spacing: 2px;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .act-fold { background: #2c2c2c; color: #888; }
+  .act-fold:hover { background: #3c2020; color: var(--chip-red); }
+  .act-check { background: #1a3a1a; color: #4caf50; border: 1px solid #4caf50; }
+  .act-call { background: var(--chip-blue); color: var(--white); }
+  .act-raise { background: linear-gradient(135deg, var(--gold), #a07830); color: var(--dark); }
+
+  /* Raise slider */
+  .raise-control {
+    width: 100%; max-width: 700px;
+    background: var(--felt-light);
+    border-radius: 10px; padding: 12px 16px;
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 16px;
+  }
+  .raise-control label { font-size: 12px; color: var(--grey); min-width: 50px; }
+  .raise-control input[type=range] { flex: 1; accent-color: var(--gold); }
+  .raise-amount {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px; color: var(--neon); min-width: 70px; text-align: right;
+  }
+
+  /* Chat */
+  .chat-panel {
+    width: 100%; max-width: 700px;
+    background: var(--felt-light);
+    border: 1px solid rgba(201,168,76,0.15);
+    border-radius: 12px; overflow: hidden;
+  }
+  .chat-header {
+    padding: 10px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    font-size: 12px; color: var(--grey); letter-spacing: 2px;
+    font-family: 'JetBrains Neue', monospace;
+  }
+  .chat-messages { padding: 10px 16px; height: 100px; overflow-y: auto; }
+  .chat-msg { font-size: 12px; margin-bottom: 6px; line-height: 1.4; }
+  .chat-msg .cm-flag { font-size: 14px; margin-right: 4px; }
+  .chat-msg .cm-nick { color: var(--gold); font-weight: 600; margin-right: 6px; }
+  .chat-msg .cm-text { color: #ccc; }
+  .chat-input-row {
+    display: flex; border-top: 1px solid rgba(255,255,255,0.08);
+  }
+  .chat-input {
+    flex: 1; background: none; border: none;
+    padding: 10px 16px; color: var(--white);
+    font-size: 13px; outline: none;
+  }
+  .chat-send {
+    background: var(--gold); border: none;
+    padding: 10px 16px; color: var(--dark);
+    font-weight: 700; cursor: pointer; font-size: 13px;
+  }
+
+  /* ── ABOUT ── */
+  #about { background: var(--dark); }
+  .about-body { flex: 1; max-width: 700px; margin: 0 auto; padding: 40px 24px; width: 100%; }
+  .about-hero {
+    text-align: center; margin-bottom: 56px;
+  }
+  .about-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 72px; letter-spacing: 6px;
+    color: var(--gold); line-height: 1;
+  }
+  .about-logo span { color: var(--neon); }
+  .about-tagline {
+    font-size: 14px; letter-spacing: 3px;
+    color: var(--grey); text-transform: uppercase;
+    margin-top: 8px;
+  }
+
+  .about-section { margin-bottom: 48px; }
+  .about-section h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px; letter-spacing: 3px;
+    color: var(--gold); margin-bottom: 16px;
+    border-bottom: 1px solid rgba(201,168,76,0.2);
+    padding-bottom: 8px;
+  }
+  .about-section p {
+    color: #bbb; line-height: 1.8; font-size: 14px; margin-bottom: 12px;
+  }
+
+  .stat-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 12px; margin-top: 16px;
+  }
+  .stat-box {
+    background: var(--felt-light);
+    border: 1px solid rgba(201,168,76,0.2);
+    border-radius: 10px; padding: 20px;
+    text-align: center;
+  }
+  .stat-number {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 28px; color: var(--neon); font-weight: 600;
+  }
+  .stat-label { font-size: 11px; color: var(--grey); margin-top: 4px; letter-spacing: 1px; }
+
+  .fee-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+  .fee-table th {
+    text-align: left; font-size: 11px; color: var(--grey);
+    letter-spacing: 2px; padding: 8px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+  .fee-table td {
+    padding: 12px 12px; font-size: 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .fee-table td:last-child {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--neon);
+  }
+
+  .country-flags {
+    display: flex; gap: 12px; flex-wrap: wrap;
+    margin-top: 16px;
+  }
+  .country-pill {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--felt-light);
+    border: 1px solid rgba(201,168,76,0.2);
+    padding: 8px 14px; border-radius: 20px;
+    font-size: 13px;
+  }
+
+  .tg-btn {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    background: #0088cc; color: var(--white);
+    border: none; padding: 16px 32px;
+    border-radius: 10px; font-size: 16px; font-weight: 600;
+    cursor: pointer; text-decoration: none;
+    margin-top: 24px; transition: all 0.2s;
+  }
+  .tg-btn:hover { background: #0077bb; transform: translateY(-2px); }
+
+  /* ── REFERRAL ── */
+  #referral { background: var(--dark); }
+  .referral-body { flex: 1; max-width: 700px; margin: 0 auto; padding: 32px 24px; width: 100%; }
+
+  .ref-card {
+    background: var(--felt-light);
+    border: 1px solid rgba(201,168,76,0.3);
+    border-radius: 16px; padding: 24px;
+    margin-bottom: 20px;
+  }
+  .ref-card h3 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px; letter-spacing: 2px;
+    color: var(--gold); margin-bottom: 16px;
+  }
+  .ref-link-box {
+    background: var(--dark);
+    border: 1px solid var(--gold-dim);
+    border-radius: 8px; padding: 12px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px; color: var(--neon);
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 16px;
+  }
+  .copy-btn {
+    background: var(--gold); border: none;
+    color: var(--dark); padding: 6px 14px;
+    border-radius: 6px; font-weight: 700;
+    font-size: 12px; cursor: pointer;
+  }
+
+  .ref-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .ref-stat { text-align: center; }
+  .ref-stat-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 24px; color: var(--neon); font-weight: 600;
+  }
+  .ref-stat-lbl { font-size: 11px; color: var(--grey); margin-top: 4px; }
+
+  .ref-tree {
+    display: flex; flex-direction: column; gap: 10px; margin-top: 16px;
+  }
+  .ref-level {
+    display: flex; align-items: center; gap: 12px;
+    background: rgba(0,0,0,0.3); padding: 12px 16px; border-radius: 8px;
+  }
+  .ref-level-badge {
+    background: var(--gold); color: var(--dark);
+    font-size: 11px; font-weight: 700;
+    padding: 3px 10px; border-radius: 12px; min-width: 60px; text-align: center;
+  }
+  .ref-level-desc { flex: 1; font-size: 13px; color: #bbb; }
+  .ref-level-pct {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px; color: var(--neon); font-weight: 600;
+  }
+
+  /* ── BOTTOM NAV ── */
+  .bottom-nav {
+    display: flex;
+    border-top: 1px solid rgba(201,168,76,0.2);
+    background: rgba(6,14,7,0.98);
+    position: sticky; bottom: 0;
+  }
+  .bnav-item {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; padding: 12px 8px;
+    cursor: pointer; transition: all 0.2s;
+    font-size: 10px; color: var(--grey);
+    letter-spacing: 1px; gap: 4px; border: none; background: none;
+  }
+  .bnav-item:hover, .bnav-item.active { color: var(--gold); }
+  .bnav-icon { font-size: 20px; }
+
+  /* Chips decoration */
+  .chip {
+    width: 28px; height: 28px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; border: 3px dashed rgba(255,255,255,0.3);
+  }
+  .chip.r { background: var(--chip-red); }
+  .chip.b { background: var(--chip-blue); }
+  .chip.g { background: var(--gold); color: var(--dark); }
+
+  /* Timer */
+  .turn-timer {
+    position: absolute; top: -36px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(0,0,0,0.8); padding: 4px 12px; border-radius: 12px;
+    font-size: 12px; color: var(--neon); white-space: nowrap;
+  }
+  .timer-dot { width: 6px; height: 6px; background: var(--neon); border-radius: 50%; animation: pulse 1s infinite; }
+
+  /* Dealer button */
+  .dealer-btn {
+    position: absolute; font-size: 10px; font-weight: 800;
+    background: var(--white); color: var(--dark);
+    width: 20px; height: 20px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════
+     PAGE 1: AGE GATE
+══════════════════════════════════════════ -->
+<div id="age-gate" class="page active">
+  <div class="age-gate-inner">
+    <div class="age-logo">IPL<span>♠</span>HOLDEM</div>
+    <div class="age-sub">International Poker · Anonymous · Crypto</div>
+
+    <div class="cards-display">
+      <div class="card-icon">🂡</div>
+      <div class="card-icon">🂮</div>
+      <div class="card-icon" style="color:#c0392b">🂻</div>
+      <div class="card-icon" style="color:#c0392b">🂷</div>
+      <div class="card-icon">🂺</div>
+    </div>
+
+    <div class="age-question">Are you 18 years or older?</div>
+    <div class="age-disclaimer">
+      This platform involves real cryptocurrency wagering.<br>
+      You must be of legal gambling age in your jurisdiction.
+    </div>
+
+    <div class="age-buttons">
+      <button class="btn-enter" onclick="goTo('lobby')">
+        ✓ &nbsp; YES, I AM 18 OR OLDER — ENTER
+      </button>
+      <button class="btn-exit" onclick="alert('You must be 18 or older to access this site.')">
+        ✗ &nbsp; No, I am under 18
+      </button>
+    </div>
+
+    <div class="age-legal">
+      By entering, you confirm you are of legal gambling age in your country.<br>
+      We do not collect personal information. Wallet address only.<br>
+      Play responsibly. <a href="#" style="color:#666">Responsible Gaming</a>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PAGE 2: LOBBY
+══════════════════════════════════════════ -->
+<div id="lobby" class="page">
+  <nav>
+    <div class="logo">IPL<span>♠</span></div>
+    <div class="nav-links">
+      <button class="nav-btn" onclick="goTo('referral')">💰 Refer</button>
+      <button class="nav-btn" onclick="goTo('about')">About</button>
+      <button class="nav-btn primary">0x7f3a...d9e2</button>
+    </div>
+  </nav>
+
+  <div class="lobby-body">
+    <!-- Wallet bar -->
+    <div class="wallet-bar">
+      <div class="wallet-info">
+        <div class="flag-nick">
+          <span class="flag">🇰🇷</span>
+          <span class="nickname">PokerKing</span>
+        </div>
+        <div class="wallet-addr">0x7f3a...d9e2</div>
+      </div>
+      <div class="balance">
+        <div class="balance-amount">$842.50</div>
+        <div class="balance-label">USDC Balance · <span style="color:var(--gold);cursor:pointer">Deposit ↑</span></div>
+      </div>
+    </div>
+
+    <!-- Live Tables -->
+    <div class="section-title"><div class="dot"></div> LIVE TABLES</div>
+    <div class="table-grid">
+      <div class="table-row" onclick="goTo('game-table')">
+        <div class="table-type heads">HEADS UP</div>
+        <div class="table-name">Blinds $1 / $2</div>
+        <div class="table-stakes">$1 / $2</div>
+        <div class="table-players">1/2 🟢</div>
+        <button class="join-btn">JOIN</button>
+      </div>
+      <div class="table-row" onclick="goTo('game-table')">
+        <div class="table-type">CASH</div>
+        <div class="table-name">6-Max · Low Stakes</div>
+        <div class="table-stakes">$2 / $5</div>
+        <div class="table-players">4/6 🟢</div>
+        <button class="join-btn">JOIN</button>
+      </div>
+      <div class="table-row" onclick="goTo('game-table')">
+        <div class="table-type">CASH</div>
+        <div class="table-name">6-Max · Mid Stakes</div>
+        <div class="table-stakes">$5 / $10</div>
+        <div class="table-players">3/6 🟢</div>
+        <button class="join-btn">JOIN</button>
+      </div>
+      <div class="table-row" onclick="goTo('game-table')">
+        <div class="table-type sng">SNG</div>
+        <div class="table-name">Sit & Go · $20 Buy-in</div>
+        <div class="table-stakes">$20+$2</div>
+        <div class="table-players">5/9 ⏳</div>
+        <button class="join-btn">JOIN</button>
+      </div>
+      <div class="table-row" onclick="goTo('game-table')">
+        <div class="table-type sng">SNG</div>
+        <div class="table-name">Sit & Go · $50 Buy-in</div>
+        <div class="table-stakes">$50+$5</div>
+        <div class="table-players">2/9 ⏳</div>
+        <button class="join-btn">JOIN</button>
+      </div>
+    </div>
+
+    <!-- Leaderboard -->
+    <div class="section-title">🏆 TODAY'S LEADERBOARD</div>
+    <div class="leader-list">
+      <div class="leader-row">
+        <div class="leader-rank top">🥇</div>
+        <div class="leader-flag">🇵🇭</div>
+        <div class="leader-name">ManilaAce</div>
+        <div class="leader-profit">+$2,140</div>
+        <div class="leader-badge">🔥 HOT</div>
+      </div>
+      <div class="leader-row">
+        <div class="leader-rank top">🥈</div>
+        <div class="leader-flag">🇰🇷</div>
+        <div class="leader-name">PokerKing</div>
+        <div class="leader-profit">+$1,820</div>
+        <div class="leader-badge">⚡ YOU</div>
+      </div>
+      <div class="leader-row">
+        <div class="leader-rank top">🥉</div>
+        <div class="leader-flag">🇯🇵</div>
+        <div class="leader-name">TokyoBluff</div>
+        <div class="leader-profit">+$1,340</div>
+        <div class="leader-badge"></div>
+      </div>
+      <div class="leader-row">
+        <div class="leader-rank">#4</div>
+        <div class="leader-flag">🇹🇼</div>
+        <div class="leader-name">DragonChip</div>
+        <div class="leader-profit">+$980</div>
+        <div class="leader-badge"></div>
+      </div>
+      <div class="leader-row">
+        <div class="leader-rank">#5</div>
+        <div class="leader-flag">🇺🇸</div>
+        <div class="leader-name">VegasWolf</div>
+        <div class="leader-profit">+$740</div>
+        <div class="leader-badge"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-nav">
+    <button class="bnav-item active"><div class="bnav-icon">🃏</div>LOBBY</button>
+    <button class="bnav-item" onclick="goTo('game-table')"><div class="bnav-icon">🎮</div>PLAY</button>
+    <button class="bnav-item" onclick="goTo('referral')"><div class="bnav-icon">💰</div>REFER</button>
+    <button class="bnav-item" onclick="goTo('about')"><div class="bnav-icon">ℹ️</div>ABOUT</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PAGE 3: GAME TABLE
+══════════════════════════════════════════ -->
+<div id="game-table" class="page">
+  <nav>
+    <div class="logo" style="font-size:20px">IPL<span>♠</span></div>
+    <div style="font-size:13px;color:var(--grey)">6-Max · $2/$5 · Pot: <span style="color:var(--gold)">$184</span></div>
+    <button class="nav-btn" onclick="goTo('lobby')">← LOBBY</button>
+  </nav>
+
+  <div class="game-body">
+    <!-- Poker Table -->
+    <div class="poker-table">
+      <!-- Players -->
+      <div class="player-seat seat-1">
+        <div class="player-avatar">🇯🇵</div>
+        <div class="player-info">
+          <div class="player-nick">TokyoBluff</div>
+          <div class="player-stack">$340</div>
+        </div>
+      </div>
+      <div class="player-seat seat-2">
+        <div class="player-avatar">🇺🇸</div>
+        <div class="player-info">
+          <div class="player-nick">VegasWolf</div>
+          <div class="player-stack">$620</div>
+        </div>
+      </div>
+      <div class="player-seat seat-3">
+        <div class="player-avatar">🇵🇭</div>
+        <div class="player-info">
+          <div class="player-nick">ManilaAce</div>
+          <div class="player-stack">$890</div>
+        </div>
+      </div>
+      <div class="player-seat seat-4" style="position:relative">
+        <div class="turn-timer"><div class="timer-dot"></div>YOUR TURN · 18s</div>
+        <div class="player-avatar you active">🇰🇷</div>
+        <div class="player-info">
+          <div class="player-nick" style="color:var(--gold)">PokerKing (YOU)</div>
+          <div class="player-stack">$842</div>
+        </div>
+        <div class="hole-cards">
+          <div class="hole-card red">A♥</div>
+          <div class="hole-card red">K♥</div>
+        </div>
+      </div>
+      <div class="player-seat seat-5">
+        <div class="player-avatar">🇹🇼</div>
+        <div class="player-info">
+          <div class="player-nick">DragonChip</div>
+          <div class="player-stack">$450</div>
+        </div>
+      </div>
+
+      <!-- Community Cards -->
+      <div class="pot-display">POT: $184 USDC</div>
+      <div class="community-cards">
+        <div class="card red">A♦</div>
+        <div class="card">K♠</div>
+        <div class="card red">7♥</div>
+        <div class="card hidden"></div>
+        <div class="card hidden"></div>
+      </div>
+      <div style="font-size:11px;color:var(--grey);letter-spacing:2px">FLOP · TURN · RIVER</div>
+    </div>
+
+    <!-- Raise control -->
+    <div class="raise-control">
+      <label>RAISE</label>
+      <input type="range" min="10" max="500" value="80" oninput="document.getElementById('raise-val').textContent='$'+this.value">
+      <div class="raise-amount" id="raise-val">$80</div>
+    </div>
+
+    <!-- Action buttons -->
+    <div class="action-bar">
+      <button class="act-btn act-fold">FOLD</button>
+      <button class="act-btn act-check">CHECK</button>
+      <button class="act-btn act-call">CALL $40</button>
+      <button class="act-btn act-raise">RAISE $80</button>
+    </div>
+
+    <!-- Chat -->
+    <div class="chat-panel">
+      <div class="chat-header">TABLE CHAT</div>
+      <div class="chat-messages">
+        <div class="chat-msg"><span class="cm-flag">🇵🇭</span><span class="cm-nick">ManilaAce</span><span class="cm-text">nice hand 👏</span></div>
+        <div class="chat-msg"><span class="cm-flag">🇯🇵</span><span class="cm-nick">TokyoBluff</span><span class="cm-text">gg wp</span></div>
+        <div class="chat-msg"><span class="cm-flag">🇺🇸</span><span class="cm-nick">VegasWolf</span><span class="cm-text">let's go 🔥</span></div>
+        <div class="chat-msg"><span class="cm-flag">🇰🇷</span><span class="cm-nick">PokerKing</span><span class="cm-text">all day 😎</span></div>
+      </div>
+      <div class="chat-input-row">
+        <input class="chat-input" placeholder="Say something..." />
+        <button class="chat-send">SEND</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-nav">
+    <button class="bnav-item" onclick="goTo('lobby')"><div class="bnav-icon">🃏</div>LOBBY</button>
+    <button class="bnav-item active"><div class="bnav-icon">🎮</div>PLAY</button>
+    <button class="bnav-item" onclick="goTo('referral')"><div class="bnav-icon">💰</div>REFER</button>
+    <button class="bnav-item" onclick="goTo('about')"><div class="bnav-icon">ℹ️</div>ABOUT</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PAGE 4: REFERRAL
+══════════════════════════════════════════ -->
+<div id="referral" class="page">
+  <nav>
+    <div class="logo">IPL<span>♠</span></div>
+    <div style="font-size:13px;color:var(--gold)">💰 Earn While They Play</div>
+    <button class="nav-btn" onclick="goTo('lobby')">← Back</button>
+  </nav>
+
+  <div class="referral-body">
+    <div class="ref-card">
+      <h3>MY REFERRAL LINK</h3>
+      <div class="ref-link-box">
+        <span>iplholdem.com/ref/PokerKing</span>
+        <button class="copy-btn" onclick="alert('Link copied!')">COPY</button>
+      </div>
+      <div class="ref-stats">
+        <div class="ref-stat">
+          <div class="ref-stat-num">23</div>
+          <div class="ref-stat-lbl">INVITED</div>
+        </div>
+        <div class="ref-stat">
+          <div class="ref-stat-num">$412</div>
+          <div class="ref-stat-lbl">EARNED</div>
+        </div>
+        <div class="ref-stat">
+          <div class="ref-stat-num">$38</div>
+          <div class="ref-stat-lbl">THIS WEEK</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ref-card">
+      <h3>HOW IT WORKS</h3>
+      <div class="ref-tree">
+        <div class="ref-level">
+          <div class="ref-level-badge">1ST LEVEL</div>
+          <div class="ref-level-desc">직접 초대한 친구가 게임할 때</div>
+          <div class="ref-level-pct">1.5%</div>
+        </div>
+        <div class="ref-level">
+          <div class="ref-level-badge">2ND LEVEL</div>
+          <div class="ref-level-desc">친구가 초대한 친구가 게임할 때</div>
+          <div class="ref-level-pct">0.5%</div>
+        </div>
+      </div>
+      <p style="font-size:12px;color:var(--grey);margin-top:16px;line-height:1.6">
+        레이크 5% 중 2%가 추천인에게 자동 지급됩니다.<br>
+        스마트컨트랙트로 즉시, 자동, 영구적으로 지급.
+      </p>
+    </div>
+
+    <div class="ref-card">
+      <h3>MY NETWORK</h3>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
+        <div class="leader-row">
+          <div class="leader-flag">🇵🇭</div>
+          <div class="leader-name">ManilaFriend</div>
+          <div class="leader-profit" style="font-size:12px">+$82 earned</div>
+          <div class="leader-badge">1st</div>
+        </div>
+        <div class="leader-row">
+          <div class="leader-flag">🇺🇸</div>
+          <div class="leader-name">VegasBuddy</div>
+          <div class="leader-profit" style="font-size:12px">+$54 earned</div>
+          <div class="leader-badge">1st</div>
+        </div>
+        <div class="leader-row">
+          <div class="leader-flag">🇯🇵</div>
+          <div class="leader-name">OsakaPlayer</div>
+          <div class="leader-profit" style="font-size:12px">+$18 earned</div>
+          <div class="leader-badge">2nd</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-nav">
+    <button class="bnav-item" onclick="goTo('lobby')"><div class="bnav-icon">🃏</div>LOBBY</button>
+    <button class="bnav-item" onclick="goTo('game-table')"><div class="bnav-icon">🎮</div>PLAY</button>
+    <button class="bnav-item active"><div class="bnav-icon">💰</div>REFER</button>
+    <button class="bnav-item" onclick="goTo('about')"><div class="bnav-icon">ℹ️</div>ABOUT</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PAGE 5: ABOUT
+══════════════════════════════════════════ -->
+<div id="about" class="page">
+  <nav>
+    <div class="logo">IPL<span>♠</span></div>
+    <button class="nav-btn primary" onclick="goTo('lobby')">PLAY NOW</button>
+  </nav>
+
+  <div class="about-body">
+    <div class="about-hero">
+      <div class="about-logo">IPL<span>♠</span>HOLDEM</div>
+      <div class="about-tagline">No Name. No Email. Just Play.</div>
+    </div>
+
+    <div class="about-section">
+      <h2>WHAT IS IPL?</h2>
+      <p>IPL Holdem은 전 세계 포커 플레이어를 위한 완전 익명 크립토 포커 플랫폼입니다.</p>
+      <p>지갑 연결 하나로 시작. 이름도, 이메일도, 가입 절차도 없습니다. 국기와 닉네임만으로 전 세계 플레이어와 대결하세요.</p>
+      <div class="stat-grid">
+        <div class="stat-box">
+          <div class="stat-number">$0</div>
+          <div class="stat-label">PERSONAL INFO REQUIRED</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number">3%</div>
+          <div class="stat-label">RAKE · TRANSPARENT</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number">⚡</div>
+          <div class="stat-label">INSTANT USDC PAYOUT</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number">🔒</div>
+          <div class="stat-label">SMART CONTRACT ESCROW</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="about-section">
+      <h2>FEE STRUCTURE</h2>
+      <table class="fee-table">
+        <tr><th>TYPE</th><th>RAKE</th><th>CAP</th></tr>
+        <tr><td>Cash Game</td><td>3%</td><td>$3 max</td></tr>
+        <tr><td>SNG Tournament</td><td>10% of buy-in</td><td>–</td></tr>
+        <tr><td>High Stakes</td><td>2%</td><td>$5 max</td></tr>
+        <tr><td>Referral Bonus</td><td colspan="2" style="color:var(--neon)">1.5% + 0.5% (2 levels)</td></tr>
+      </table>
+    </div>
+
+    <div class="about-section">
+      <h2>GLOBAL COMMUNITY</h2>
+      <p>온라인 게임을 넘어 오프라인 대회까지. IPL 채팅방에서 만난 플레이어들과 실제로 대결하세요.</p>
+      <div class="country-flags">
+        <div class="country-pill">🇵🇭 Manila</div>
+        <div class="country-pill">🇲🇴 Macau</div>
+        <div class="country-pill">🇹🇼 Taipei</div>
+        <div class="country-pill">🇯🇵 Tokyo</div>
+        <div class="country-pill">🇰🇷 Seoul</div>
+        <div class="country-pill">🇺🇸 Vegas</div>
+      </div>
+    </div>
+
+    <div class="about-section" style="text-align:center">
+      <h2>JOIN THE COMMUNITY</h2>
+      <p>텔레그램에서 IPL 글로벌 포커 커뮤니티에 합류하세요.<br>대회 공지, 리더보드, 오프라인 이벤트 정보.</p>
+      <a class="tg-btn" href="#">
+        ✈️ JOIN IPL TELEGRAM
+      </a>
+    </div>
+  </div>
+
+  <div class="bottom-nav">
+    <button class="bnav-item" onclick="goTo('lobby')"><div class="bnav-icon">🃏</div>LOBBY</button>
+    <button class="bnav-item" onclick="goTo('game-table')"><div class="bnav-icon">🎮</div>PLAY</button>
+    <button class="bnav-item" onclick="goTo('referral')"><div class="bnav-icon">💰</div>REFER</button>
+    <button class="bnav-item active"><div class="bnav-icon">ℹ️</div>ABOUT</button>
+  </div>
+</div>
+
+<script>
+  function goTo(pageId) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById(pageId).classList.add('active');
+    window.scrollTo(0, 0);
+  }
+</script>
+</body>
+</html>
