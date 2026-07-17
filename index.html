@@ -2,669 +2,924 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="IPL Holdem">
+<meta name="theme-color" content="#060e07">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="logo.webp">
 <title>IPL — International Poker League</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap');
+:root {
+  --felt:#0a1f0e; --felt-light:#112516; --gold:#c9a84c; --gold-dim:#7a6330;
+  --chip-red:#c0392b; --chip-blue:#2471a3; --white:#f0ece0; --grey:#8a8a8a;
+  --dark:#060e07; --neon:#00ff88; --neon-dim:rgba(0,255,136,0.08);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;}
+body{background:var(--dark);color:var(--white);font-family:'Inter',sans-serif;touch-action:manipulation;}
 
-  :root {
-    --felt: #0a1f0e;
-    --felt-light: #112516;
-    --gold: #c9a84c;
-    --gold-dim: #7a6330;
-    --chip-red: #c0392b;
-    --chip-blue: #2471a3;
-    --white: #f0ece0;
-    --grey: #8a8a8a;
-    --dark: #060e07;
-    --neon: #00ff88;
-    --neon-dim: rgba(0,255,136,0.08);
-  }
+/* PAGES */
+.page{display:none;height:100vh;height:100dvh;flex-direction:column;overflow:hidden;}
+.page.active{display:flex;}
+.page-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;}
 
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body { background:var(--dark); color:var(--white); font-family:'Inter',sans-serif; min-height:100vh; overflow-x:hidden; }
+/* NAV */
+nav{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:1px solid rgba(201,168,76,0.2);background:rgba(6,14,7,0.97);flex-shrink:0;min-height:52px;}
+.nav-logo{display:flex;align-items:center;gap:8px;}
+.nav-logo img{height:32px;width:32px;object-fit:contain;}
+.nav-logo-text{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:3px;color:var(--gold);}
+.nav-logo-sub{font-size:8px;color:var(--grey);letter-spacing:2px;}
+.nav-right{display:flex;align-items:center;gap:6px;}
+.lang-btn{background:none;border:1px solid rgba(201,168,76,0.3);color:var(--grey);padding:5px 8px;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600;}
+.lang-btn.active{background:var(--gold);color:var(--dark);border-color:var(--gold);}
+.nav-btn{background:none;border:1px solid var(--gold-dim);color:var(--white);padding:7px 12px;border-radius:4px;cursor:pointer;font-size:11px;}
+.nav-btn.primary{background:var(--gold);color:var(--dark);border-color:var(--gold);font-weight:700;}
+.nav-btn.connected{background:var(--neon-dim);border-color:var(--neon);color:var(--neon);font-family:'JetBrains Mono',monospace;font-size:10px;}
 
-  .page { display:none; min-height:100vh; flex-direction:column; }
-  .page.active { display:flex; }
+/* BOTTOM NAV */
+.bottom-nav{display:flex;border-top:1px solid rgba(201,168,76,0.18);background:rgba(6,14,7,0.98);flex-shrink:0;padding-bottom:var(--safe-bottom);}
+.bnav-item{flex:1;display:flex;flex-direction:column;align-items:center;padding:10px 4px;cursor:pointer;font-size:9px;color:var(--grey);letter-spacing:1px;gap:3px;border:none;background:none;transition:color 0.2s;}
+.bnav-item:hover,.bnav-item.active{color:var(--gold);}
+.bnav-icon{font-size:18px;}
 
-  /* ── NAV ── */
-  nav {
-    display:flex; justify-content:space-between; align-items:center;
-    padding:12px 20px;
-    border-bottom:1px solid rgba(201,168,76,0.2);
-    background:rgba(6,14,7,0.97);
-    position:sticky; top:0; z-index:100;
-  }
-  .nav-logo { display:flex; align-items:center; gap:10px; }
-  .nav-logo img { height:36px; width:36px; object-fit:contain; }
-  .nav-logo-text { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:3px; color:var(--gold); line-height:1; }
-  .nav-logo-sub { font-size:9px; color:var(--grey); letter-spacing:2px; }
-  .nav-links { display:flex; gap:8px; }
-  .nav-btn { background:none; border:1px solid var(--gold-dim); color:var(--white); padding:8px 14px; border-radius:4px; cursor:pointer; font-size:12px; transition:all 0.2s; }
-  .nav-btn:hover { border-color:var(--gold); color:var(--gold); }
-  .nav-btn.primary { background:var(--gold); color:var(--dark); border-color:var(--gold); font-weight:700; }
-  .nav-btn.connected { background:var(--neon-dim); border-color:var(--neon); color:var(--neon); font-family:'JetBrains Mono',monospace; font-size:11px; }
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:200;justify-content:center;align-items:flex-end;}
+.modal-overlay.open{display:flex;}
+.modal-box{background:#0f1f10;border:1px solid rgba(201,168,76,0.3);border-radius:20px 20px 0 0;padding:24px 20px;width:100%;max-width:480px;max-height:88vh;overflow-y:auto;padding-bottom:calc(20px + var(--safe-bottom));}
+.modal-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--gold);margin-bottom:4px;}
+.modal-sub{font-size:12px;color:var(--grey);margin-bottom:18px;}
+.modal-close{width:100%;background:none;border:1px solid #333;color:var(--grey);padding:12px;border-radius:10px;margin-top:12px;cursor:pointer;font-size:13px;}
 
-  /* ── MODAL ── */
-  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.88); z-index:1000; justify-content:center; align-items:flex-end; }
-  .modal-overlay.open { display:flex; }
-  .modal-box { background:#0f1f10; border:1px solid rgba(201,168,76,0.3); border-radius:20px 20px 0 0; padding:28px 24px; width:100%; max-width:480px; }
-  .modal-title { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:2px; color:var(--gold); margin-bottom:6px; }
-  .modal-sub { font-size:12px; color:var(--grey); margin-bottom:20px; }
-  .wallet-options { display:flex; flex-direction:column; gap:10px; }
-  .wallet-option { display:flex; align-items:center; gap:14px; background:var(--felt-light); border:1px solid rgba(201,168,76,0.15); border-radius:12px; padding:14px 18px; cursor:pointer; transition:all 0.2s; }
-  .wallet-option:hover { border-color:var(--gold); }
-  .wallet-icon { font-size:26px; }
-  .wallet-name { font-weight:600; font-size:14px; }
-  .wallet-desc { font-size:11px; color:var(--grey); margin-top:2px; }
-  .modal-close { width:100%; background:none; border:1px solid #333; color:var(--grey); padding:12px; border-radius:10px; margin-top:14px; cursor:pointer; font-size:13px; }
+/* WALLET OPTIONS */
+.wallet-options{display:flex;flex-direction:column;gap:8px;}
+.wallet-option{display:flex;align-items:center;gap:12px;background:var(--felt-light);border:1px solid rgba(201,168,76,0.15);border-radius:12px;padding:13px 16px;cursor:pointer;transition:all 0.2s;}
+.wallet-option:hover{border-color:var(--gold);}
+.wallet-icon{font-size:24px;}
+.wallet-name{font-weight:600;font-size:14px;}
+.wallet-desc{font-size:11px;color:var(--grey);margin-top:2px;}
 
-  /* ── NICK MODAL ── */
-  .nick-input { width:100%; background:var(--dark); border:1px solid var(--gold-dim); color:var(--white); padding:13px 16px; border-radius:8px; font-size:15px; margin-bottom:14px; outline:none; }
-  .nick-input:focus { border-color:var(--gold); }
-  .flag-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin-bottom:18px; }
-  .flag-btn { background:var(--felt-light); border:2px solid transparent; border-radius:8px; padding:9px; font-size:22px; cursor:pointer; text-align:center; transition:all 0.2s; }
-  .flag-btn:hover,.flag-btn.selected { border-color:var(--gold); background:rgba(201,168,76,0.1); }
-  .flag-label { font-size:8px; color:var(--grey); display:block; margin-top:2px; }
-  .btn-confirm { width:100%; background:linear-gradient(135deg,var(--gold),#a07830); color:var(--dark); border:none; padding:15px; border-radius:10px; font-family:'Bebas Neue',sans-serif; font-size:20px; letter-spacing:2px; cursor:pointer; }
+/* COUNTRY SELECT */
+#country-screen{position:fixed;inset:0;background:var(--dark);z-index:300;display:flex;flex-direction:column;}
+#country-screen.hidden{display:none;}
+.cs-header{padding:16px 20px 12px;border-bottom:1px solid rgba(201,168,76,0.2);flex-shrink:0;}
+.cs-title{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px;color:var(--gold);margin-bottom:4px;}
+.cs-sub{font-size:12px;color:var(--grey);margin-bottom:12px;}
+.cs-search{width:100%;background:var(--felt-light);border:1px solid rgba(201,168,76,0.3);color:var(--white);padding:10px 14px;border-radius:8px;font-size:14px;outline:none;}
+.cs-search::placeholder{color:var(--grey);}
+.country-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:6px;padding:12px;overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1;}
+.country-btn{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;border-radius:10px;border:1.5px solid rgba(201,168,76,0.15);background:var(--felt-light);cursor:pointer;transition:all 0.15s;font-size:10px;color:var(--grey);font-weight:500;}
+.country-btn:hover,.country-btn.selected{border-color:var(--gold);background:rgba(201,168,76,0.1);color:var(--gold);}
+.country-btn .cflag{font-size:28px;line-height:1;}
+.country-btn .cname{font-size:9px;text-align:center;line-height:1.2;}
+.cs-confirm{margin:12px 20px;margin-bottom:calc(12px + var(--safe-bottom));}
+.cs-confirm-btn{width:100%;background:linear-gradient(135deg,var(--gold),#a07830);color:var(--dark);border:none;padding:15px;border-radius:10px;font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;cursor:pointer;}
 
-  /* ── AGE GATE ── */
-  #age-gate {
-    background:radial-gradient(ellipse at center,#0d2010 0%,var(--dark) 70%);
-    justify-content:center; align-items:center; text-align:center; padding:40px 24px;
-  }
-  .age-gate-inner { max-width:420px; }
-  .age-logo-img { width:140px; height:140px; object-fit:contain; margin-bottom:16px; filter:drop-shadow(0 0 24px rgba(201,168,76,0.4)); }
-  .age-ipl-text { font-family:'Bebas Neue',sans-serif; font-size:48px; letter-spacing:8px; color:var(--gold); line-height:1; margin-bottom:4px; }
-  .age-full-name { font-size:11px; letter-spacing:3px; color:var(--grey); text-transform:uppercase; margin-bottom:40px; }
-  .age-question { font-size:18px; font-weight:300; margin-bottom:8px; }
-  .age-disclaimer { font-size:12px; color:var(--grey); margin-bottom:28px; line-height:1.6; }
-  .age-buttons { display:flex; flex-direction:column; gap:10px; }
-  .btn-enter { background:linear-gradient(135deg,var(--gold),#a07830); color:var(--dark); border:none; padding:17px; border-radius:8px; font-family:'Bebas Neue',sans-serif; font-size:20px; letter-spacing:3px; cursor:pointer; transition:all 0.2s; }
-  .btn-enter:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(201,168,76,0.4); }
-  .btn-exit { background:none; border:1px solid #444; color:var(--grey); padding:13px; border-radius:8px; font-size:13px; cursor:pointer; }
-  .btn-exit:hover { border-color:var(--chip-red); color:var(--chip-red); }
-  .age-legal { margin-top:20px; font-size:10px; color:#555; line-height:1.6; }
+/* AGE GATE */
+#age-gate{background:radial-gradient(ellipse at center,#0d2010 0%,var(--dark) 70%);justify-content:center;align-items:center;text-align:center;padding:32px 24px;}
+.age-inner{max-width:400px;}
+.age-logo-img{width:130px;height:130px;object-fit:contain;margin-bottom:12px;filter:drop-shadow(0 0 24px rgba(201,168,76,0.4));}
+.age-ipl{font-family:'Bebas Neue',sans-serif;font-size:44px;letter-spacing:8px;color:var(--gold);line-height:1;}
+.age-full{font-size:10px;letter-spacing:3px;color:var(--grey);text-transform:uppercase;margin-bottom:32px;}
+.age-q{font-size:17px;font-weight:300;margin-bottom:6px;}
+.age-disc{font-size:11px;color:var(--grey);margin-bottom:24px;line-height:1.6;}
+.age-btns{display:flex;flex-direction:column;gap:10px;}
+.btn-enter{background:linear-gradient(135deg,var(--gold),#a07830);color:var(--dark);border:none;padding:16px;border-radius:8px;font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:3px;cursor:pointer;}
+.btn-exit{background:none;border:1px solid #444;color:var(--grey);padding:12px;border-radius:8px;font-size:13px;cursor:pointer;}
+.age-legal{margin-top:16px;font-size:10px;color:#555;line-height:1.6;}
 
-  /* ── LOBBY ── */
-  #lobby { background:var(--dark); }
-  .lobby-body { flex:1; padding:20px; max-width:860px; margin:0 auto; width:100%; }
+/* LOBBY */
+#lobby{background:var(--dark);}
+.lobby-inner{padding:14px;}
+.wallet-bar{background:var(--felt-light);border:1px solid rgba(201,168,76,0.2);border-radius:10px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+.player-identity{display:flex;align-items:center;gap:8px;}
+.p-flag-big{font-size:28px;}
+.p-nick-main{font-weight:600;font-size:14px;}
+.p-wallet-addr{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--grey);margin-top:2px;}
+.balance-display{text-align:right;}
+.balance-num{font-family:'JetBrains Mono',monospace;font-size:18px;color:var(--neon);font-weight:600;}
+.balance-lbl{font-size:9px;color:var(--grey);}
+.dw-btns{display:flex;gap:8px;margin-bottom:14px;}
+.dw-btn{flex:1;padding:10px;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer;border:none;}
+.dw-deposit{background:var(--neon);color:var(--dark);}
+.dw-withdraw{background:none;border:1px solid var(--neon)!important;color:var(--neon);}
 
-  .wallet-bar { background:var(--felt-light); border:1px solid rgba(201,168,76,0.2); border-radius:12px; padding:14px 18px; display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
-  .flag-nick { display:flex; align-items:center; gap:8px; }
-  .player-flag { font-size:22px; }
-  .player-nickname { font-weight:600; font-size:15px; }
-  .wallet-addr { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--grey); margin-top:2px; }
-  .balance-amount { font-family:'JetBrains Mono',monospace; font-size:20px; color:var(--neon); font-weight:600; text-align:right; }
-  .balance-label { font-size:10px; color:var(--grey); text-align:right; }
+.section-title{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:3px;color:var(--gold);margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.dot{width:5px;height:5px;background:var(--neon);border-radius:50%;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
 
-  .dw-btns { display:flex; gap:8px; margin-bottom:18px; }
-  .dw-btn { flex:1; padding:11px; border-radius:8px; font-weight:700; font-size:13px; cursor:pointer; transition:all 0.2s; border:none; }
-  .dw-deposit { background:var(--neon); color:var(--dark); }
-  .dw-withdraw { background:none; border:1px solid var(--neon) !important; color:var(--neon); }
+/* STAKE TABS */
+.stake-tabs{display:flex;gap:6px;margin-bottom:12px;}
+.stake-tab{flex:1;padding:9px 4px;border-radius:8px;border:1px solid rgba(201,168,76,0.2);background:var(--felt-light);color:var(--grey);font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:1px;cursor:pointer;text-align:center;transition:all 0.2s;line-height:1.3;}
+.stake-tab.active{background:var(--gold);color:var(--dark);border-color:var(--gold);}
+.tab-sub{font-size:8px;display:block;font-family:'Inter',sans-serif;margin-top:2px;letter-spacing:0;}
 
-  .section-title { font-family:'Bebas Neue',sans-serif; font-size:18px; letter-spacing:3px; color:var(--gold); margin-bottom:12px; display:flex; align-items:center; gap:8px; }
-  .dot { width:6px; height:6px; background:var(--neon); border-radius:50%; animation:pulse 2s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+/* TABLE ROWS */
+.table-grid{display:flex;flex-direction:column;gap:7px;margin-bottom:20px;}
+.table-row{background:var(--felt-light);border:1px solid rgba(201,168,76,0.12);border-radius:9px;padding:11px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:all 0.2s;}
+.table-row:hover{border-color:var(--gold);}
+.table-type{font-size:9px;font-weight:700;padding:3px 6px;border-radius:4px;letter-spacing:1px;min-width:46px;text-align:center;flex-shrink:0;}
+.tt-cash{background:var(--gold);color:var(--dark);}
+.tt-heads{background:var(--chip-red);color:#fff;}
+.tt-sng{background:var(--chip-blue);color:#fff;}
+.table-name{flex:1;font-weight:500;font-size:13px;}
+.table-buyin{font-size:9px;color:var(--grey);margin-top:2px;}
+.table-stakes{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--neon);text-align:right;}
+.rake-tag{font-size:8px;background:rgba(0,255,136,0.1);color:var(--neon);padding:2px 5px;border-radius:6px;display:block;margin-top:2px;text-align:right;}
+.table-players{font-size:11px;color:var(--grey);min-width:40px;text-align:right;}
+.join-btn{background:var(--gold);color:var(--dark);border:none;padding:7px 12px;border-radius:6px;font-weight:700;font-size:11px;cursor:pointer;flex-shrink:0;}
 
-  /* ── STAKE TABS ── */
-  .stake-tabs { display:flex; gap:6px; margin-bottom:14px; }
-  .stake-tab { flex:1; padding:10px 6px; border-radius:8px; border:1px solid rgba(201,168,76,0.2); background:var(--felt-light); color:var(--grey); font-family:'Bebas Neue',sans-serif; font-size:16px; letter-spacing:1px; cursor:pointer; text-align:center; transition:all 0.2s; }
-  .stake-tab:hover { border-color:var(--gold); color:var(--gold); }
-  .stake-tab.active { background:var(--gold); color:var(--dark); border-color:var(--gold); }
-  .stake-tab .tab-limit { font-size:9px; letter-spacing:1px; display:block; margin-top:2px; }
-  .stake-tab .tab-rake { font-size:9px; color:inherit; opacity:0.7; }
+/* LEADERBOARD */
+.lb-tabs{display:flex;gap:6px;margin-bottom:10px;}
+.lb-tab{flex:1;padding:7px;border-radius:6px;border:1px solid rgba(201,168,76,0.2);background:var(--felt-light);color:var(--grey);font-size:10px;font-weight:600;cursor:pointer;text-align:center;letter-spacing:1px;}
+.lb-tab.active{background:var(--gold);color:var(--dark);border-color:var(--gold);}
+.leader-list{display:flex;flex-direction:column;gap:5px;margin-bottom:20px;}
+.leader-row{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--felt-light);border-radius:7px;border:1px solid rgba(255,255,255,0.04);}
+.leader-rank{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--grey);min-width:22px;}
+.leader-rank.top{color:var(--gold);font-weight:700;}
+.leader-flag{font-size:18px;}
+.leader-name{flex:1;font-weight:500;font-size:13px;}
+.leader-profit{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--neon);}
+.leader-badge{font-size:9px;background:rgba(201,168,76,0.12);color:var(--gold);padding:2px 6px;border-radius:8px;}
+.country-rank-row{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--felt-light);border-radius:7px;border:1px solid rgba(255,255,255,0.04);}
+.cr-bar{flex:1;height:4px;background:rgba(255,255,255,0.1);border-radius:2px;margin:0 8px;}
+.cr-bar-fill{height:100%;background:var(--neon);border-radius:2px;}
+.cr-score{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--neon);min-width:50px;text-align:right;}
 
-  /* ── TABLE LIST ── */
-  .table-grid { display:flex; flex-direction:column; gap:8px; margin-bottom:24px; }
-  .table-row { background:var(--felt-light); border:1px solid rgba(201,168,76,0.15); border-radius:10px; padding:13px 16px; display:flex; align-items:center; gap:12px; cursor:pointer; transition:all 0.2s; }
-  .table-row:hover { border-color:var(--gold); background:rgba(201,168,76,0.06); }
-  .table-type { font-size:9px; font-weight:700; padding:3px 7px; border-radius:4px; letter-spacing:1px; min-width:52px; text-align:center; }
-  .tt-cash { background:var(--gold); color:var(--dark); }
-  .tt-heads { background:var(--chip-red); color:#fff; }
-  .tt-sng { background:var(--chip-blue); color:#fff; }
-  .table-name { flex:1; font-weight:500; font-size:14px; }
-  .table-stakes { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--neon); }
-  .table-players { font-size:12px; color:var(--grey); min-width:52px; text-align:right; }
-  .join-btn { background:var(--gold); color:var(--dark); border:none; padding:7px 16px; border-radius:6px; font-weight:700; font-size:12px; cursor:pointer; white-space:nowrap; }
+/* GAME TABLE */
+#game-table{background:#040d05;}
+.game-body{flex:1;display:flex;flex-direction:column;align-items:center;padding:10px;gap:8px;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.poker-table{width:100%;max-width:640px;background:radial-gradient(ellipse,#1c6030 0%,#104020 55%,#0a2e13 100%);border-radius:120px;border:10px solid #5c3a1e;outline:3px solid #2a1a0a;padding:32px 48px;position:relative;min-height:280px;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 16px 48px rgba(0,0,0,0.8);}
+.player-seat{position:absolute;display:flex;flex-direction:column;align-items:center;gap:2px;}
+.seat-1{top:-46px;left:50%;transform:translateX(-50%);}
+.seat-2{top:6px;right:-16px;}
+.seat-3{bottom:6px;right:-16px;}
+.seat-4{bottom:-52px;left:50%;transform:translateX(-50%);}
+.seat-5{bottom:6px;left:-16px;}
+.seat-6{top:6px;left:-16px;}
+.p-avatar{width:38px;height:38px;background:#0d1f10;border-radius:50%;border:2px solid var(--gold-dim);display:flex;align-items:center;justify-content:center;font-size:16px;}
+.p-avatar.active{border-color:var(--neon);box-shadow:0 0 10px rgba(0,255,136,0.4);}
+.p-avatar.you{border-color:var(--gold);}
+.p-nick{font-size:9px;font-weight:600;white-space:nowrap;text-align:center;}
+.p-stack{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--neon);}
+.pot-display{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--gold);background:rgba(0,0,0,0.45);padding:4px 12px;border-radius:14px;margin-bottom:6px;}
+.community-cards{display:flex;gap:5px;margin-bottom:5px;}
+.c-card{width:38px;height:54px;background:var(--white);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 3px 8px rgba(0,0,0,0.5);color:#222;}
+.c-card.red{color:var(--chip-red);}
+.c-card.hidden{background:linear-gradient(135deg,#1a237e,#283593);}
+.phase-label{font-size:9px;color:var(--grey);letter-spacing:2px;}
+.hole-cards{display:flex;gap:5px;margin-top:5px;}
+.h-card{width:46px;height:66px;background:var(--white);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 4px 12px rgba(0,0,0,0.6);}
+.h-card.red{color:var(--chip-red);}
+.turn-timer{position:absolute;top:-32px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:4px;background:rgba(0,0,0,0.85);padding:3px 10px;border-radius:10px;font-size:10px;color:var(--neon);white-space:nowrap;}
+.timer-dot{width:5px;height:5px;background:var(--neon);border-radius:50%;animation:pulse 1s infinite;}
+.action-bar{display:flex;gap:5px;width:100%;max-width:640px;}
+.act-btn{flex:1;padding:12px 4px;border:none;border-radius:8px;font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:1px;cursor:pointer;}
+.act-fold{background:#252525;color:#777;}
+.act-check{background:#142814;color:#4caf50;border:1px solid #4caf50;}
+.act-call{background:var(--chip-blue);color:#fff;}
+.act-raise{background:linear-gradient(135deg,var(--gold),#9a7428);color:var(--dark);}
+.raise-control{width:100%;max-width:640px;background:var(--felt-light);border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:8px;}
+.raise-control label{font-size:10px;color:var(--grey);min-width:40px;}
+.raise-control input[type=range]{flex:1;accent-color:var(--gold);}
+.raise-amount{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--neon);min-width:54px;text-align:right;}
+.chat-panel{width:100%;max-width:640px;background:var(--felt-light);border:1px solid rgba(201,168,76,0.12);border-radius:10px;overflow:hidden;}
+.chat-header{padding:7px 12px;border-bottom:1px solid rgba(255,255,255,0.07);font-size:10px;color:var(--grey);letter-spacing:2px;}
+.chat-messages{padding:7px 12px;height:80px;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.chat-msg{font-size:10px;margin-bottom:4px;line-height:1.4;}
+.cm-flag{font-size:12px;margin-right:3px;}
+.cm-nick{color:var(--gold);font-weight:600;margin-right:4px;font-size:10px;}
+.cm-text{color:#bbb;}
+.chat-input-row{display:flex;border-top:1px solid rgba(255,255,255,0.07);}
+.chat-input{flex:1;background:none;border:none;padding:8px 12px;color:var(--white);font-size:12px;outline:none;}
+.chat-send{background:var(--gold);border:none;padding:8px 12px;color:var(--dark);font-weight:700;cursor:pointer;font-size:11px;}
 
-  /* rake badge */
-  .rake-badge { font-size:9px; background:rgba(0,255,136,0.1); color:var(--neon); padding:2px 6px; border-radius:8px; margin-left:4px; }
+/* MYPAGE */
+#mypage{background:var(--dark);}
+.mypage-inner{padding:16px;}
+.profile-card{background:var(--felt-light);border:1px solid rgba(201,168,76,0.3);border-radius:14px;padding:20px;text-align:center;margin-bottom:16px;}
+.profile-flag-big{font-size:56px;margin-bottom:8px;display:block;}
+.profile-nick{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:2px;color:var(--gold);}
+.profile-country{font-size:13px;color:var(--grey);margin-bottom:16px;}
+.profile-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;}
+.ps-box{background:var(--dark);border-radius:8px;padding:12px;text-align:center;}
+.ps-num{font-family:'JetBrains Mono',monospace;font-size:18px;color:var(--neon);font-weight:600;}
+.ps-lbl{font-size:9px;color:var(--grey);margin-top:3px;}
+.edit-btn{background:linear-gradient(135deg,var(--gold),#a07830);color:var(--dark);border:none;padding:12px 24px;border-radius:8px;font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;cursor:pointer;margin:4px;}
+.edit-input{width:100%;background:var(--dark);border:1px solid var(--gold-dim);color:var(--white);padding:12px 14px;border-radius:8px;font-size:14px;outline:none;margin-bottom:10px;}
+.edit-input:focus{border-color:var(--gold);}
 
-  /* ── LEADERBOARD ── */
-  .leader-list { display:flex; flex-direction:column; gap:6px; margin-bottom:24px; }
-  .leader-row { display:flex; align-items:center; gap:10px; padding:11px 14px; background:var(--felt-light); border-radius:8px; border:1px solid rgba(255,255,255,0.04); }
-  .leader-rank { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--grey); min-width:24px; }
-  .leader-rank.top { color:var(--gold); font-weight:700; }
-  .leader-flag { font-size:18px; }
-  .leader-name { flex:1; font-weight:500; font-size:13px; }
-  .leader-profit { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--neon); }
-  .leader-badge { font-size:10px; background:rgba(201,168,76,0.12); color:var(--gold); padding:2px 7px; border-radius:10px; }
+/* REFERRAL */
+#referral{background:var(--dark);}
+.ref-inner{padding:16px;}
+.ref-card{background:var(--felt-light);border:1px solid rgba(201,168,76,0.25);border-radius:12px;padding:18px;margin-bottom:14px;}
+.ref-card h3{font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:2px;color:var(--gold);margin-bottom:12px;}
+.ref-link-box{background:var(--dark);border:1px solid var(--gold-dim);border-radius:7px;padding:10px 12px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--neon);display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:6px;word-break:break-all;}
+.copy-btn{background:var(--gold);border:none;color:var(--dark);padding:5px 10px;border-radius:5px;font-weight:700;font-size:11px;cursor:pointer;white-space:nowrap;}
+.ref-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+.ref-stat{text-align:center;}
+.ref-stat-num{font-family:'JetBrains Mono',monospace;font-size:20px;color:var(--neon);font-weight:600;}
+.ref-stat-lbl{font-size:9px;color:var(--grey);margin-top:3px;}
+.ref-level{display:flex;align-items:center;gap:8px;background:rgba(0,0,0,0.3);padding:10px 12px;border-radius:8px;margin-top:8px;}
+.ref-level-badge{background:var(--gold);color:var(--dark);font-size:9px;font-weight:700;padding:3px 8px;border-radius:10px;min-width:52px;text-align:center;}
+.ref-level-desc{flex:1;font-size:11px;color:#bbb;}
+.ref-level-pct{font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--neon);font-weight:600;}
 
-  /* ── GAME TABLE ── */
-  #game-table { background:#040d05; }
-  .game-body { flex:1; display:flex; flex-direction:column; align-items:center; padding:12px; gap:10px; }
-  .game-info-bar { width:100%; max-width:680px; display:flex; justify-content:space-between; align-items:center; font-size:11px; color:var(--grey); }
-  .game-info-bar span { color:var(--gold); font-family:'JetBrains Mono',monospace; }
+/* TOAST */
+.tx-toast{position:fixed;bottom:72px;left:50%;transform:translateX(-50%);background:var(--felt-light);border:1px solid var(--neon);color:var(--neon);padding:9px 20px;border-radius:16px;font-size:11px;font-family:'JetBrains Mono',monospace;z-index:999;display:none;white-space:nowrap;box-shadow:0 4px 20px rgba(0,255,136,0.2);}
+.tx-toast.show{display:block;}
 
-  .poker-table {
-    width:100%; max-width:680px;
-    background:radial-gradient(ellipse,#1c6030 0%,#104020 55%,#0a2e13 100%);
-    border-radius:140px; border:10px solid #5c3a1e; outline:3px solid #2a1a0a;
-    padding:36px 52px; position:relative; min-height:300px;
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
-    box-shadow:0 16px 48px rgba(0,0,0,0.8),inset 0 1px 6px rgba(255,255,255,0.04);
-  }
-  .player-seat { position:absolute; display:flex; flex-direction:column; align-items:center; gap:3px; }
-  .seat-1 { top:-48px; left:50%; transform:translateX(-50%); }
-  .seat-2 { top:8px; right:-18px; }
-  .seat-3 { bottom:8px; right:-18px; }
-  .seat-4 { bottom:-52px; left:50%; transform:translateX(-50%); }
-  .seat-5 { bottom:8px; left:-18px; }
-  .seat-6 { top:8px; left:-18px; }
-  .p-avatar { width:40px; height:40px; background:#0d1f10; border-radius:50%; border:2px solid var(--gold-dim); display:flex; align-items:center; justify-content:center; font-size:18px; }
-  .p-avatar.active { border-color:var(--neon); box-shadow:0 0 10px rgba(0,255,136,0.4); }
-  .p-avatar.you { border-color:var(--gold); }
-  .p-nick { font-size:10px; font-weight:600; white-space:nowrap; text-align:center; }
-  .p-stack { font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--neon); }
-
-  .pot-display { font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--gold); background:rgba(0,0,0,0.45); padding:5px 14px; border-radius:16px; margin-bottom:8px; }
-  .community-cards { display:flex; gap:6px; margin-bottom:6px; }
-  .c-card { width:42px; height:60px; background:var(--white); border-radius:5px; display:flex; align-items:center; justify-content:center; font-size:18px; box-shadow:0 3px 10px rgba(0,0,0,0.5); color:#222; }
-  .c-card.red { color:var(--chip-red); }
-  .c-card.hidden { background:linear-gradient(135deg,#1a237e,#283593); }
-  .phase-label { font-size:10px; color:var(--grey); letter-spacing:2px; }
-
-  .hole-cards { display:flex; gap:6px; margin-top:6px; }
-  .h-card { width:50px; height:72px; background:var(--white); border-radius:7px; display:flex; align-items:center; justify-content:center; font-size:24px; box-shadow:0 4px 14px rgba(0,0,0,0.6); }
-  .h-card.red { color:var(--chip-red); }
-
-  .turn-timer { position:absolute; top:-34px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:5px; background:rgba(0,0,0,0.85); padding:4px 12px; border-radius:10px; font-size:11px; color:var(--neon); white-space:nowrap; }
-  .timer-dot { width:5px; height:5px; background:var(--neon); border-radius:50%; animation:pulse 1s infinite; }
-
-  .action-bar { display:flex; gap:6px; width:100%; max-width:680px; }
-  .act-btn { flex:1; padding:13px 6px; border:none; border-radius:8px; font-family:'Bebas Neue',sans-serif; font-size:16px; letter-spacing:1px; cursor:pointer; transition:all 0.2s; }
-  .act-fold { background:#252525; color:#777; }
-  .act-fold:hover { background:#3a1515; color:var(--chip-red); }
-  .act-check { background:#142814; color:#4caf50; border:1px solid #4caf50; }
-  .act-call { background:var(--chip-blue); color:#fff; }
-  .act-raise { background:linear-gradient(135deg,var(--gold),#9a7428); color:var(--dark); }
-
-  .raise-control { width:100%; max-width:680px; background:var(--felt-light); border-radius:10px; padding:10px 14px; display:flex; align-items:center; gap:10px; }
-  .raise-control label { font-size:11px; color:var(--grey); min-width:44px; }
-  .raise-control input[type=range] { flex:1; accent-color:var(--gold); }
-  .raise-amount { font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--neon); min-width:60px; text-align:right; }
-
-  .chat-panel { width:100%; max-width:680px; background:var(--felt-light); border:1px solid rgba(201,168,76,0.12); border-radius:10px; overflow:hidden; }
-  .chat-header { padding:8px 14px; border-bottom:1px solid rgba(255,255,255,0.07); font-size:11px; color:var(--grey); letter-spacing:2px; }
-  .chat-messages { padding:8px 14px; height:88px; overflow-y:auto; }
-  .chat-msg { font-size:11px; margin-bottom:5px; line-height:1.4; }
-  .cm-flag { font-size:13px; margin-right:3px; }
-  .cm-nick { color:var(--gold); font-weight:600; margin-right:5px; font-size:11px; }
-  .cm-text { color:#bbb; }
-  .chat-input-row { display:flex; border-top:1px solid rgba(255,255,255,0.07); }
-  .chat-input { flex:1; background:none; border:none; padding:9px 14px; color:var(--white); font-size:12px; outline:none; }
-  .chat-send { background:var(--gold); border:none; padding:9px 14px; color:var(--dark); font-weight:700; cursor:pointer; font-size:12px; }
-
-  /* ── REFERRAL ── */
-  #referral { background:var(--dark); }
-  .referral-body { flex:1; max-width:680px; margin:0 auto; padding:24px 20px; width:100%; }
-  .ref-card { background:var(--felt-light); border:1px solid rgba(201,168,76,0.25); border-radius:14px; padding:20px; margin-bottom:16px; }
-  .ref-card h3 { font-family:'Bebas Neue',sans-serif; font-size:18px; letter-spacing:2px; color:var(--gold); margin-bottom:14px; }
-  .ref-link-box { background:var(--dark); border:1px solid var(--gold-dim); border-radius:8px; padding:11px 14px; font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--neon); display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; gap:8px; word-break:break-all; }
-  .copy-btn { background:var(--gold); border:none; color:var(--dark); padding:5px 12px; border-radius:5px; font-weight:700; font-size:11px; cursor:pointer; white-space:nowrap; }
-  .ref-stats { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
-  .ref-stat { text-align:center; }
-  .ref-stat-num { font-family:'JetBrains Mono',monospace; font-size:22px; color:var(--neon); font-weight:600; }
-  .ref-stat-lbl { font-size:10px; color:var(--grey); margin-top:3px; }
-  .ref-tree { display:flex; flex-direction:column; gap:8px; margin-top:14px; }
-  .ref-level { display:flex; align-items:center; gap:10px; background:rgba(0,0,0,0.3); padding:11px 14px; border-radius:8px; }
-  .ref-level-badge { background:var(--gold); color:var(--dark); font-size:10px; font-weight:700; padding:3px 8px; border-radius:10px; min-width:56px; text-align:center; }
-  .ref-level-desc { flex:1; font-size:12px; color:#bbb; }
-  .ref-level-pct { font-family:'JetBrains Mono',monospace; font-size:15px; color:var(--neon); font-weight:600; }
-
-  /* ── ABOUT ── */
-  #about { background:var(--dark); }
-  .about-body { flex:1; max-width:680px; margin:0 auto; padding:36px 20px; width:100%; }
-  .about-hero { text-align:center; margin-bottom:44px; }
-  .about-logo-img { width:120px; height:120px; object-fit:contain; margin-bottom:12px; filter:drop-shadow(0 0 20px rgba(201,168,76,0.35)); }
-  .about-ipl { font-family:'Bebas Neue',sans-serif; font-size:52px; letter-spacing:8px; color:var(--gold); line-height:1; }
-  .about-tagline { font-size:12px; letter-spacing:3px; color:var(--grey); text-transform:uppercase; margin-top:6px; }
-  .about-section { margin-bottom:40px; }
-  .about-section h2 { font-family:'Bebas Neue',sans-serif; font-size:24px; letter-spacing:3px; color:var(--gold); margin-bottom:14px; border-bottom:1px solid rgba(201,168,76,0.2); padding-bottom:6px; }
-  .about-section p { color:#bbb; line-height:1.8; font-size:13px; margin-bottom:10px; }
-  .stat-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px; }
-  .stat-box { background:var(--felt-light); border:1px solid rgba(201,168,76,0.18); border-radius:10px; padding:18px; text-align:center; }
-  .stat-number { font-family:'JetBrains Mono',monospace; font-size:24px; color:var(--neon); font-weight:600; }
-  .stat-label { font-size:10px; color:var(--grey); margin-top:4px; letter-spacing:1px; }
-  .fee-table { width:100%; border-collapse:collapse; margin-top:14px; }
-  .fee-table th { text-align:left; font-size:10px; color:var(--grey); letter-spacing:2px; padding:7px 10px; border-bottom:1px solid rgba(255,255,255,0.08); }
-  .fee-table td { padding:10px 10px; font-size:13px; border-bottom:1px solid rgba(255,255,255,0.04); }
-  .fee-table td:last-child { font-family:'JetBrains Mono',monospace; color:var(--neon); }
-  .country-flags { display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; }
-  .country-pill { display:flex; align-items:center; gap:5px; background:var(--felt-light); border:1px solid rgba(201,168,76,0.18); padding:7px 12px; border-radius:16px; font-size:12px; }
-  .tg-btn { display:flex; align-items:center; justify-content:center; gap:8px; background:#0088cc; color:#fff; border:none; padding:14px 28px; border-radius:10px; font-size:15px; font-weight:600; cursor:pointer; text-decoration:none; margin-top:20px; transition:all 0.2s; }
-
-  /* ── BOTTOM NAV ── */
-  .bottom-nav { display:flex; border-top:1px solid rgba(201,168,76,0.18); background:rgba(6,14,7,0.98); position:sticky; bottom:0; }
-  .bnav-item { flex:1; display:flex; flex-direction:column; align-items:center; padding:10px 6px; cursor:pointer; font-size:9px; color:var(--grey); letter-spacing:1px; gap:3px; border:none; background:none; transition:all 0.2s; }
-  .bnav-item:hover,.bnav-item.active { color:var(--gold); }
-  .bnav-icon { font-size:18px; }
-
-  /* ── TOAST ── */
-  .tx-toast { position:fixed; bottom:76px; left:50%; transform:translateX(-50%); background:var(--felt-light); border:1px solid var(--neon); color:var(--neon); padding:10px 22px; border-radius:18px; font-size:12px; font-family:'JetBrains Mono',monospace; z-index:999; display:none; white-space:nowrap; box-shadow:0 4px 20px rgba(0,255,136,0.2); }
-  .tx-toast.show { display:block; }
-
-  /* ── STAKE COLORS ── */
-  .stake-micro .table-stakes { color:#aaa; }
-  .stake-mid .table-stakes { color:var(--neon); }
-  .stake-high .table-stakes { color:#ffd700; }
+/* FEE TABLE */
+.fee-table{width:100%;border-collapse:collapse;margin-top:12px;font-size:12px;}
+.fee-table th{text-align:left;font-size:9px;color:var(--grey);letter-spacing:2px;padding:6px 8px;border-bottom:1px solid rgba(255,255,255,0.08);}
+.fee-table td{padding:9px 8px;border-bottom:1px solid rgba(255,255,255,0.04);}
+.fee-table td:last-child{font-family:'JetBrains Mono',monospace;color:var(--neon);}
 </style>
 </head>
 <body>
-
 <div class="tx-toast" id="tx-toast"></div>
 
-<!-- WALLET MODAL -->
+<!-- ═══ WALLET MODAL ═══ -->
 <div class="modal-overlay" id="wallet-modal">
   <div class="modal-box">
-    <div class="modal-title">Connect Wallet</div>
-    <div class="modal-sub">No sign-up. No email. Wallet = your identity.</div>
+    <div class="modal-title" data-i18n="connect_wallet">Connect Wallet</div>
+    <div class="modal-sub" data-i18n="connect_sub">No sign-up. No email. Wallet = your identity.</div>
     <div class="wallet-options">
-      <div class="wallet-option" onclick="connectWallet()"><div class="wallet-icon">🦊</div><div><div class="wallet-name">MetaMask</div><div class="wallet-desc">Most popular Web3 wallet</div></div></div>
+      <div class="wallet-option" onclick="connectWallet()"><div class="wallet-icon">🦊</div><div><div class="wallet-name">MetaMask</div><div class="wallet-desc" data-i18n="wallet_popular">Most popular Web3 wallet</div></div></div>
       <div class="wallet-option" onclick="connectWallet()"><div class="wallet-icon">🌈</div><div><div class="wallet-name">Rainbow</div><div class="wallet-desc">Mobile-first wallet</div></div></div>
       <div class="wallet-option" onclick="connectWallet()"><div class="wallet-icon">💙</div><div><div class="wallet-name">Coinbase Wallet</div><div class="wallet-desc">Official Coinbase wallet</div></div></div>
       <div class="wallet-option" onclick="connectWallet()"><div class="wallet-icon">🔵</div><div><div class="wallet-name">WalletConnect</div><div class="wallet-desc">500+ wallets supported</div></div></div>
     </div>
-    <button class="modal-close" onclick="closeModal('wallet-modal')">Cancel</button>
+    <button class="modal-close" onclick="closeModal('wallet-modal')" data-i18n="cancel">Cancel</button>
   </div>
 </div>
 
-<!-- NICK MODAL -->
-<div class="modal-overlay" id="nick-modal">
+<!-- ═══ EDIT NICK MODAL ═══ -->
+<div class="modal-overlay" id="edit-modal">
   <div class="modal-box">
-    <div class="modal-title">Your Identity</div>
-    <div class="modal-sub">Nickname + Country flag. That's all we need.</div>
-    <input class="nick-input" id="nick-input" placeholder="Nickname (e.g. ManilaAce)" maxlength="16"/>
-    <div style="font-size:11px;color:var(--grey);margin-bottom:10px;letter-spacing:1px">SELECT YOUR COUNTRY</div>
-    <div class="flag-grid">
-      <div class="flag-btn" onclick="selectFlag(this,'🇰🇷','KR')">🇰🇷<span class="flag-label">Korea</span></div>
-      <div class="flag-btn" onclick="selectFlag(this,'🇵🇭','PH')">🇵🇭<span class="flag-label">Philippines</span></div>
-      <div class="flag-btn" onclick="selectFlag(this,'🇯🇵','JP')">🇯🇵<span class="flag-label">Japan</span></div>
-      <div class="flag-btn" onclick="selectFlag(this,'🇹🇼','TW')">🇹🇼<span class="flag-label">Taiwan</span></div>
-      <div class="flag-btn" onclick="selectFlag(this,'🇺🇸','US')">🇺🇸<span class="flag-label">USA</span></div>
-      <div class="flag-btn" onclick="selectFlag(this,'🇨🇳','CN')">🇨🇳<span class="flag-label">China</span></div>
-      <div class="flag-btn" onclick="selectFlag(this,'🇹🇭','TH')">🇹🇭<span class="flag-label">Thailand</span></div>
-      <div class="flag-btn" onclick="selectFlag(this,'🇻🇳','VN')">🇻🇳<span class="flag-label">Vietnam</span></div>
-      <div class="flag-btn" onclick="selectFlag(this,'🇲🇾','MY')">🇲🇾<span class="flag-label">Malaysia</span></div>
-      <div class="flag-btn" onclick="selectFlag(this,'🇬🇧','GB')">🇬🇧<span class="flag-label">UK</span></div>
-    </div>
-    <button class="btn-confirm" onclick="confirmIdentity()">ENTER THE TABLES →</button>
+    <div class="modal-title" data-i18n="edit_profile">Edit Profile</div>
+    <input class="edit-input" id="edit-nick-input" placeholder="New nickname" maxlength="16"/>
+    <button class="cs-confirm-btn" onclick="saveNick()" data-i18n="save">SAVE</button>
+    <button class="modal-close" onclick="closeModal('edit-modal')" data-i18n="cancel">Cancel</button>
   </div>
 </div>
 
-<!-- ══════════════════ PAGE 1: AGE GATE ══════════════════ -->
+<!-- ═══ COUNTRY SELECT SCREEN ═══ -->
+<div id="country-screen" class="hidden">
+  <div class="cs-header">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+      <div>
+        <div class="cs-title" data-i18n="select_country">SELECT YOUR COUNTRY</div>
+        <div class="cs-sub" data-i18n="country_sub">You are your nation's representative 🏆</div>
+      </div>
+      <img src="logo.webp" style="height:36px;width:36px;object-fit:contain;"/>
+    </div>
+    <input class="cs-search" id="country-search" placeholder="🔍 Search country..." oninput="filterCountries(this.value)" data-i18n-placeholder="search_country"/>
+  </div>
+  <div class="country-grid" id="country-grid"></div>
+  <div class="cs-confirm">
+    <button class="cs-confirm-btn" id="cs-confirm-btn" onclick="confirmCountry()" data-i18n="confirm_country">CONFIRM — ENTER AS REPRESENTATIVE →</button>
+  </div>
+</div>
+
+<!-- ═══ PAGE: AGE GATE ═══ -->
 <div id="age-gate" class="page active">
-  <div class="age-gate-inner">
-    <img src="logo.webp" class="age-logo-img" alt="IPL Logo"/>
-    <div class="age-ipl-text">IPL</div>
-    <div class="age-full-name">International Poker League</div>
-    <div class="age-question">Are you 18 years or older?</div>
-    <div class="age-disclaimer">
-      This platform involves real cryptocurrency wagering.<br>
-      You must be of legal gambling age in your jurisdiction.
+  <div class="age-inner">
+    <img src="logo.webp" class="age-logo-img" alt="IPL"/>
+    <div class="age-ipl">IPL</div>
+    <div class="age-full" data-i18n="full_name">International Poker League</div>
+    <div class="age-q" data-i18n="age_q">Are you 18 years or older?</div>
+    <div class="age-disc" data-i18n="age_disc">This platform involves real cryptocurrency wagering.<br>You must be of legal gambling age in your jurisdiction.</div>
+    <div class="age-btns">
+      <button class="btn-enter" onclick="onEnter()" data-i18n="enter_yes">✓  YES — I AM 18 OR OLDER</button>
+      <button class="btn-exit" onclick="alert(T('under18_alert'))" data-i18n="enter_no">✗  No, I am under 18</button>
     </div>
-    <div class="age-buttons">
-      <button class="btn-enter" onclick="openModal('wallet-modal')">✓ &nbsp; YES — I AM 18 OR OLDER</button>
-      <button class="btn-exit" onclick="alert('You must be 18 or older.')">✗ &nbsp; No, I am under 18</button>
-    </div>
-    <div class="age-legal">
-      No personal information collected. Wallet address only.<br>
-      Play responsibly. <a href="#" style="color:#555">Responsible Gaming</a>
-    </div>
+    <div class="age-legal" data-i18n="age_legal">No personal information collected. Wallet address only.<br>Play responsibly.</div>
   </div>
 </div>
 
-<!-- ══════════════════ PAGE 2: LOBBY ══════════════════ -->
+<!-- ═══ PAGE: LOBBY ═══ -->
 <div id="lobby" class="page">
   <nav>
     <div class="nav-logo">
       <img src="logo.webp" alt="IPL"/>
-      <div><div class="nav-logo-text">IPL</div><div class="nav-logo-sub">International Poker League</div></div>
+      <div><div class="nav-logo-text">IPL</div><div class="nav-logo-sub">INTERNATIONAL POKER LEAGUE</div></div>
     </div>
-    <div class="nav-links">
-      <button class="nav-btn" onclick="goTo('referral')">💰 Refer</button>
-      <button class="nav-btn" onclick="goTo('about')">About</button>
+    <div class="nav-right">
+      <div style="display:flex;gap:3px;" id="lang-switcher"></div>
       <button class="nav-btn connected" id="wallet-btn" onclick="openModal('wallet-modal')">Connect</button>
     </div>
   </nav>
-
-  <div class="lobby-body">
-    <!-- Wallet bar -->
-    <div class="wallet-bar">
-      <div>
-        <div class="flag-nick">
-          <span class="player-flag" id="lobby-flag">🎭</span>
-          <span class="player-nickname" id="lobby-nick">Anonymous</span>
+  <div class="page-scroll">
+    <div class="lobby-inner">
+      <div class="wallet-bar">
+        <div class="player-identity">
+          <span class="p-flag-big" id="lobby-flag">🎭</span>
+          <div>
+            <div class="p-nick-main" id="lobby-nick">Anonymous</div>
+            <div class="p-wallet-addr" id="lobby-addr">Not connected</div>
+          </div>
         </div>
-        <div class="wallet-addr" id="lobby-addr">Not connected</div>
+        <div class="balance-display">
+          <div class="balance-num" id="lobby-balance">—</div>
+          <div class="balance-lbl">USDC · Base Sepolia</div>
+        </div>
       </div>
-      <div>
-        <div class="balance-amount" id="lobby-balance">—</div>
-        <div class="balance-label">USDC · Base Sepolia</div>
+      <div class="dw-btns">
+        <button class="dw-btn dw-deposit" onclick="showDeposit()" data-i18n="deposit">↑ Deposit USDC</button>
+        <button class="dw-btn dw-withdraw" onclick="showWithdraw()" data-i18n="withdraw">↓ Withdraw</button>
       </div>
-    </div>
-
-    <div class="dw-btns">
-      <button class="dw-btn dw-deposit" onclick="showDeposit()">↑ Deposit USDC</button>
-      <button class="dw-btn dw-withdraw" onclick="showWithdraw()">↓ Withdraw</button>
-    </div>
-
-    <!-- Stake Tabs -->
-    <div class="section-title"><div class="dot"></div> CHOOSE YOUR STAKES</div>
-    <div class="stake-tabs">
-      <div class="stake-tab active" onclick="setStake('micro',this)">
-        🪙 MICRO
-        <span class="tab-limit">$1 · $10</span>
-        <span class="tab-rake">Rake 3% · cap $0.30</span>
+      <div class="section-title"><div class="dot"></div> <span data-i18n="choose_stakes">CHOOSE YOUR STAKES</span></div>
+      <div class="stake-tabs">
+        <div class="stake-tab active" onclick="setStake('micro',this)">🪙 MICRO<span class="tab-sub">$1–$10 · 3%</span></div>
+        <div class="stake-tab" onclick="setStake('mid',this)">💵 MID<span class="tab-sub">$10–$100 · 3%</span></div>
+        <div class="stake-tab" onclick="setStake('high',this)">💎 HIGH<span class="tab-sub">$100+ · 2%</span></div>
       </div>
-      <div class="stake-tab" onclick="setStake('mid',this)">
-        💵 MID
-        <span class="tab-limit">$10 · $100</span>
-        <span class="tab-rake">Rake 3% · cap $3</span>
+      <div class="table-grid" id="table-grid"></div>
+      <!-- LEADERBOARD -->
+      <div class="section-title">🏆 <span data-i18n="leaderboard">LEADERBOARD</span></div>
+      <div class="lb-tabs">
+        <div class="lb-tab active" onclick="setLbTab('player',this)" data-i18n="players">PLAYERS</div>
+        <div class="lb-tab" onclick="setLbTab('country',this)" data-i18n="countries">COUNTRIES</div>
+        <div class="lb-tab" onclick="setLbTab('weekly',this)" data-i18n="weekly">WEEKLY</div>
       </div>
-      <div class="stake-tab" onclick="setStake('high',this)">
-        💎 HIGH
-        <span class="tab-limit">$100 · $1,000+</span>
-        <span class="tab-rake">Rake 2% · cap $20</span>
-      </div>
-    </div>
-
-    <!-- Table list -->
-    <div class="table-grid" id="table-grid">
-      <!-- populated by JS -->
-    </div>
-
-    <!-- Leaderboard -->
-    <div class="section-title">🏆 TODAY'S LEADERBOARD</div>
-    <div class="leader-list">
-      <div class="leader-row"><div class="leader-rank top">🥇</div><div class="leader-flag">🇵🇭</div><div class="leader-name">ManilaAce</div><div class="leader-profit">+$2,140</div><div class="leader-badge">🔥 HOT</div></div>
-      <div class="leader-row"><div class="leader-rank top">🥈</div><div class="leader-flag">🇰🇷</div><div class="leader-name">PokerKing</div><div class="leader-profit">+$1,820</div><div class="leader-badge">⚡ YOU</div></div>
-      <div class="leader-row"><div class="leader-rank top">🥉</div><div class="leader-flag">🇯🇵</div><div class="leader-name">TokyoBluff</div><div class="leader-profit">+$1,340</div><div class="leader-badge"></div></div>
-      <div class="leader-row"><div class="leader-rank">#4</div><div class="leader-flag">🇹🇼</div><div class="leader-name">DragonChip</div><div class="leader-profit">+$980</div><div class="leader-badge"></div></div>
-      <div class="leader-row"><div class="leader-rank">#5</div><div class="leader-flag">🇺🇸</div><div class="leader-name">VegasWolf</div><div class="leader-profit">+$740</div><div class="leader-badge"></div></div>
+      <div id="leaderboard-content"></div>
     </div>
   </div>
-
   <div class="bottom-nav">
-    <button class="bnav-item active"><div class="bnav-icon">🃏</div>LOBBY</button>
-    <button class="bnav-item" onclick="goTo('game-table')"><div class="bnav-icon">🎮</div>PLAY</button>
-    <button class="bnav-item" onclick="goTo('referral')"><div class="bnav-icon">💰</div>REFER</button>
-    <button class="bnav-item" onclick="goTo('about')"><div class="bnav-icon">ℹ️</div>ABOUT</button>
+    <button class="bnav-item active" onclick="switchPage('lobby',this)"><div class="bnav-icon">🃏</div><span data-i18n="lobby">LOBBY</span></button>
+    <button class="bnav-item" onclick="joinCurrentTable()"><div class="bnav-icon">🎮</div><span data-i18n="play">PLAY</span></button>
+    <button class="bnav-item" onclick="switchPage('referral',this)"><div class="bnav-icon">💰</div><span data-i18n="refer">REFER</span></button>
+    <button class="bnav-item" onclick="switchPage('mypage',this)"><div class="bnav-icon">👤</div><span data-i18n="mypage">MY PAGE</span></button>
   </div>
 </div>
 
-<!-- ══════════════════ PAGE 3: GAME TABLE ══════════════════ -->
+<!-- ═══ PAGE: GAME TABLE ═══ -->
 <div id="game-table" class="page">
   <nav>
-    <div class="nav-logo">
-      <img src="logo.webp" alt="IPL" style="height:28px;width:28px"/>
+    <div class="nav-logo"><img src="logo.webp" alt="IPL" style="height:28px;width:28px;"/></div>
+    <div style="flex:1;padding:0 10px;font-size:11px;color:var(--grey);">
+      <span id="game-stakes-label">6-Max · $2/$5</span> &nbsp;|&nbsp; Rake: <span id="game-rake-label" style="color:var(--neon)">3%</span>
     </div>
-    <div class="game-info-bar" style="flex:1;padding:0 12px">
-      <span id="game-stakes-label">6-Max · $2/$5</span>
-      <span>Rake: <span id="game-rake-label">3%</span></span>
-    </div>
-    <button class="nav-btn" onclick="goTo('lobby')">← LOBBY</button>
+    <button class="nav-btn" onclick="switchPage('lobby',null)">← <span data-i18n="lobby">LOBBY</span></button>
   </nav>
-
   <div class="game-body">
     <div class="poker-table">
-      <div class="player-seat seat-1">
-        <div class="p-avatar">🇯🇵</div>
-        <div class="p-nick">TokyoBluff</div><div class="p-stack">$340</div>
-      </div>
-      <div class="player-seat seat-2">
-        <div class="p-avatar">🇺🇸</div>
-        <div class="p-nick">VegasWolf</div><div class="p-stack">$620</div>
-      </div>
-      <div class="player-seat seat-3">
-        <div class="p-avatar">🇵🇭</div>
-        <div class="p-nick">ManilaAce</div><div class="p-stack">$890</div>
-      </div>
+      <div class="player-seat seat-1"><div class="p-avatar">🇯🇵</div><div class="p-nick">TokyoBluff</div><div class="p-stack">$340</div></div>
+      <div class="player-seat seat-2"><div class="p-avatar">🇺🇸</div><div class="p-nick">VegasWolf</div><div class="p-stack">$620</div></div>
+      <div class="player-seat seat-3"><div class="p-avatar">🇵🇭</div><div class="p-nick">ManilaAce</div><div class="p-stack">$890</div></div>
       <div class="player-seat seat-4" style="position:relative">
         <div class="turn-timer"><div class="timer-dot"></div>YOUR TURN · <span id="turn-timer">18</span>s</div>
         <div class="p-avatar you active" id="my-avatar">🇰🇷</div>
         <div class="p-nick" style="color:var(--gold)" id="my-game-nick">You</div>
         <div class="p-stack" id="my-stack">$842</div>
-        <div class="hole-cards">
-          <div class="h-card red">A♥</div>
-          <div class="h-card red">K♥</div>
-        </div>
+        <div class="hole-cards"><div class="h-card red">A♥</div><div class="h-card red">K♥</div></div>
       </div>
-      <div class="player-seat seat-5">
-        <div class="p-avatar">🇹🇼</div>
-        <div class="p-nick">DragonChip</div><div class="p-stack">$450</div>
-      </div>
+      <div class="player-seat seat-5"><div class="p-avatar">🇹🇼</div><div class="p-nick">DragonChip</div><div class="p-stack">$450</div></div>
       <div class="pot-display">POT: <span id="pot-usdc">$184</span> USDC</div>
       <div class="community-cards">
-        <div class="c-card red">A♦</div>
-        <div class="c-card">K♠</div>
-        <div class="c-card red">7♥</div>
-        <div class="c-card hidden" style="width:42px;height:60px"></div>
-        <div class="c-card hidden" style="width:42px;height:60px"></div>
+        <div class="c-card red">A♦</div><div class="c-card">K♠</div><div class="c-card red">7♥</div>
+        <div class="c-card hidden" style="width:38px;height:54px;"></div>
+        <div class="c-card hidden" style="width:38px;height:54px;"></div>
       </div>
       <div class="phase-label">FLOP · TURN · RIVER</div>
     </div>
-
     <div class="raise-control">
       <label>RAISE</label>
       <input type="range" min="10" max="500" value="80" oninput="document.getElementById('raise-val').textContent='$'+this.value">
       <div class="raise-amount" id="raise-val">$80</div>
     </div>
-
     <div class="action-bar">
-      <button class="act-btn act-fold" onclick="sendAction('fold')">FOLD</button>
-      <button class="act-btn act-check" onclick="sendAction('check')">CHECK</button>
+      <button class="act-btn act-fold" onclick="sendAction('fold')" data-i18n="fold">FOLD</button>
+      <button class="act-btn act-check" onclick="sendAction('check')" data-i18n="check">CHECK</button>
       <button class="act-btn act-call" onclick="sendAction('call')">CALL $40</button>
-      <button class="act-btn act-raise" onclick="sendAction('raise')">RAISE $80</button>
+      <button class="act-btn act-raise" onclick="sendAction('raise')" data-i18n="raise">RAISE</button>
     </div>
-
     <div class="chat-panel">
-      <div class="chat-header">TABLE CHAT</div>
+      <div class="chat-header" data-i18n="table_chat">TABLE CHAT</div>
       <div class="chat-messages" id="chat-messages">
         <div class="chat-msg"><span class="cm-flag">🇵🇭</span><span class="cm-nick">ManilaAce</span><span class="cm-text">nice hand 👏</span></div>
         <div class="chat-msg"><span class="cm-flag">🇯🇵</span><span class="cm-nick">TokyoBluff</span><span class="cm-text">gg wp</span></div>
-        <div class="chat-msg"><span class="cm-flag">🇺🇸</span><span class="cm-nick">VegasWolf</span><span class="cm-text">let's go 🔥</span></div>
       </div>
       <div class="chat-input-row">
         <input class="chat-input" id="chat-input" placeholder="Say something..." onkeypress="if(event.key==='Enter')sendChat()"/>
-        <button class="chat-send" onclick="sendChat()">SEND</button>
+        <button class="chat-send" onclick="sendChat()" data-i18n="send">SEND</button>
       </div>
     </div>
   </div>
-
   <div class="bottom-nav">
-    <button class="bnav-item" onclick="goTo('lobby')"><div class="bnav-icon">🃏</div>LOBBY</button>
-    <button class="bnav-item active"><div class="bnav-icon">🎮</div>PLAY</button>
-    <button class="bnav-item" onclick="goTo('referral')"><div class="bnav-icon">💰</div>REFER</button>
-    <button class="bnav-item" onclick="goTo('about')"><div class="bnav-icon">ℹ️</div>ABOUT</button>
+    <button class="bnav-item" onclick="switchPage('lobby',this)"><div class="bnav-icon">🃏</div><span data-i18n="lobby">LOBBY</span></button>
+    <button class="bnav-item active"><div class="bnav-icon">🎮</div><span data-i18n="play">PLAY</span></button>
+    <button class="bnav-item" onclick="switchPage('referral',this)"><div class="bnav-icon">💰</div><span data-i18n="refer">REFER</span></button>
+    <button class="bnav-item" onclick="switchPage('mypage',this)"><div class="bnav-icon">👤</div><span data-i18n="mypage">MY PAGE</span></button>
   </div>
 </div>
 
-<!-- ══════════════════ PAGE 4: REFERRAL ══════════════════ -->
+<!-- ═══ PAGE: REFERRAL ═══ -->
 <div id="referral" class="page">
   <nav>
     <div class="nav-logo"><img src="logo.webp" alt="IPL"/><div><div class="nav-logo-text">IPL</div></div></div>
-    <div style="font-size:12px;color:var(--gold)">💰 Earn While They Play</div>
-    <button class="nav-btn" onclick="goTo('lobby')">← Back</button>
-  </nav>
-  <div class="referral-body">
-    <div class="ref-card">
-      <h3>MY REFERRAL LINK</h3>
-      <div class="ref-link-box">
-        <span id="ref-link">Connect wallet to get your link</span>
-        <button class="copy-btn" onclick="copyRefLink()">COPY</button>
-      </div>
-      <div class="ref-stats">
-        <div class="ref-stat"><div class="ref-stat-num" id="ref-invited">0</div><div class="ref-stat-lbl">INVITED</div></div>
-        <div class="ref-stat"><div class="ref-stat-num" id="ref-earned">$0</div><div class="ref-stat-lbl">EARNED</div></div>
-        <div class="ref-stat"><div class="ref-stat-num" id="ref-week">$0</div><div class="ref-stat-lbl">THIS WEEK</div></div>
-      </div>
+    <div class="nav-right">
+      <div style="display:flex;gap:3px;" id="lang-switcher-ref"></div>
     </div>
-    <div class="ref-card">
-      <h3>HOW IT WORKS</h3>
-      <div style="background:rgba(0,255,136,0.06);border:1px solid rgba(0,255,136,0.2);border-radius:10px;padding:14px;margin-bottom:14px">
-        <div style="font-size:12px;color:var(--grey);margin-bottom:6px">전체 레이크 5%에서</div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <div style="text-align:center"><div style="font-family:'JetBrains Mono',monospace;font-size:20px;color:var(--neon)">3%</div><div style="font-size:10px;color:var(--grey)">IPL 수익</div></div>
-          <div style="font-size:18px;color:var(--grey)">+</div>
-          <div style="text-align:center"><div style="font-family:'JetBrains Mono',monospace;font-size:20px;color:var(--gold)">1.5%</div><div style="font-size:10px;color:var(--grey)">직접 추천</div></div>
-          <div style="font-size:18px;color:var(--grey)">+</div>
-          <div style="text-align:center"><div style="font-family:'JetBrains Mono',monospace;font-size:20px;color:var(--gold)">0.5%</div><div style="font-size:10px;color:var(--grey)">2단계 추천</div></div>
-          <div style="font-size:18px;color:var(--grey)">=</div>
-          <div style="text-align:center"><div style="font-family:'JetBrains Mono',monospace;font-size:20px;color:#fff">5%</div><div style="font-size:10px;color:var(--grey)">합계</div></div>
+  </nav>
+  <div class="page-scroll">
+    <div class="ref-inner">
+      <div class="ref-card">
+        <h3 data-i18n="my_ref_link">MY REFERRAL LINK</h3>
+        <div class="ref-link-box"><span id="ref-link">Connect wallet to get your link</span><button class="copy-btn" onclick="copyRefLink()" data-i18n="copy">COPY</button></div>
+        <div class="ref-stats">
+          <div class="ref-stat"><div class="ref-stat-num" id="ref-invited">0</div><div class="ref-stat-lbl" data-i18n="invited">INVITED</div></div>
+          <div class="ref-stat"><div class="ref-stat-num" id="ref-earned">$0</div><div class="ref-stat-lbl" data-i18n="earned">EARNED</div></div>
+          <div class="ref-stat"><div class="ref-stat-num" id="ref-week">$0</div><div class="ref-stat-lbl" data-i18n="this_week">THIS WEEK</div></div>
         </div>
       </div>
-      <div class="ref-tree">
-        <div class="ref-level"><div class="ref-level-badge">1ST LEVEL</div><div class="ref-level-desc">직접 초대한 친구가 게임할 때마다</div><div class="ref-level-pct">1.5%</div></div>
-        <div class="ref-level"><div class="ref-level-badge">2ND LEVEL</div><div class="ref-level-desc">친구가 초대한 친구가 게임할 때</div><div class="ref-level-pct">0.5%</div></div>
+      <div class="ref-card">
+        <h3 data-i18n="how_it_works">HOW IT WORKS</h3>
+        <div style="background:rgba(0,255,136,0.06);border:1px solid rgba(0,255,136,0.2);border-radius:10px;padding:12px;margin-bottom:10px;">
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <div style="text-align:center;"><div style="font-family:'JetBrains Mono',monospace;font-size:18px;color:var(--neon)">3%</div><div style="font-size:9px;color:var(--grey)" data-i18n="ipl_earn">IPL</div></div>
+            <div style="color:var(--grey)">+</div>
+            <div style="text-align:center;"><div style="font-family:'JetBrains Mono',monospace;font-size:18px;color:var(--gold)">1.5%</div><div style="font-size:9px;color:var(--grey)" data-i18n="level1">L1 Referral</div></div>
+            <div style="color:var(--grey)">+</div>
+            <div style="text-align:center;"><div style="font-family:'JetBrains Mono',monospace;font-size:18px;color:var(--gold)">0.5%</div><div style="font-size:9px;color:var(--grey)" data-i18n="level2">L2 Referral</div></div>
+            <div style="color:var(--grey)">=</div>
+            <div style="text-align:center;"><div style="font-family:'JetBrains Mono',monospace;font-size:18px;color:#fff">5%</div><div style="font-size:9px;color:var(--grey)">TOTAL</div></div>
+          </div>
+        </div>
+        <div class="ref-level"><div class="ref-level-badge">L1</div><div class="ref-level-desc" data-i18n="l1_desc">직접 초대한 친구가 게임할 때마다</div><div class="ref-level-pct">1.5%</div></div>
+        <div class="ref-level"><div class="ref-level-badge">L2</div><div class="ref-level-desc" data-i18n="l2_desc">친구가 초대한 친구가 게임할 때</div><div class="ref-level-pct">0.5%</div></div>
+        <p style="font-size:10px;color:var(--grey);margin-top:10px;line-height:1.6" data-i18n="smart_auto">스마트컨트랙트 자동 지급 · 즉시 · 평생</p>
       </div>
-      <p style="font-size:11px;color:var(--grey);margin-top:12px;line-height:1.6">스마트컨트랙트가 게임 종료 즉시 자동 지급. 평생 지속.</p>
-    </div>
-    <div class="ref-card">
-      <h3>RAKE BY STAKES</h3>
-      <table class="fee-table">
-        <tr><th>STAKES</th><th>BUY-IN</th><th>RAKE</th><th>CAP</th></tr>
-        <tr><td>🪙 Micro</td><td>$1~$10</td><td>3%</td><td style="color:var(--neon)">$0.30</td></tr>
-        <tr><td>💵 Mid</td><td>$10~$100</td><td>3%</td><td style="color:var(--neon)">$3</td></tr>
-        <tr><td>💎 High</td><td>$100~$1,000+</td><td>2%</td><td style="color:var(--neon)">$20</td></tr>
-        <tr><td>🏆 SNG</td><td>Any</td><td>10% fee</td><td style="color:var(--neon)">–</td></tr>
-      </table>
+      <div class="ref-card">
+        <h3 data-i18n="rake_by_stakes">RAKE BY STAKES</h3>
+        <table class="fee-table">
+          <tr><th data-i18n="stakes">STAKES</th><th>BUY-IN</th><th>RAKE</th><th>CAP</th></tr>
+          <tr><td>🪙 Micro</td><td>$1~$10</td><td>3%</td><td>$0.30</td></tr>
+          <tr><td>💵 Mid</td><td>$10~$100</td><td>3%</td><td>$3</td></tr>
+          <tr><td>💎 High</td><td>$100~$1K+</td><td>2%</td><td>$20</td></tr>
+          <tr><td>🏆 SNG</td><td>Any</td><td>+10%</td><td>–</td></tr>
+        </table>
+      </div>
     </div>
   </div>
   <div class="bottom-nav">
-    <button class="bnav-item" onclick="goTo('lobby')"><div class="bnav-icon">🃏</div>LOBBY</button>
-    <button class="bnav-item" onclick="goTo('game-table')"><div class="bnav-icon">🎮</div>PLAY</button>
-    <button class="bnav-item active"><div class="bnav-icon">💰</div>REFER</button>
-    <button class="bnav-item" onclick="goTo('about')"><div class="bnav-icon">ℹ️</div>ABOUT</button>
+    <button class="bnav-item" onclick="switchPage('lobby',this)"><div class="bnav-icon">🃏</div><span data-i18n="lobby">LOBBY</span></button>
+    <button class="bnav-item" onclick="joinCurrentTable()"><div class="bnav-icon">🎮</div><span data-i18n="play">PLAY</span></button>
+    <button class="bnav-item active"><div class="bnav-icon">💰</div><span data-i18n="refer">REFER</span></button>
+    <button class="bnav-item" onclick="switchPage('mypage',this)"><div class="bnav-icon">👤</div><span data-i18n="mypage">MY PAGE</span></button>
   </div>
 </div>
 
-<!-- ══════════════════ PAGE 5: ABOUT ══════════════════ -->
-<div id="about" class="page">
+<!-- ═══ PAGE: MY PAGE ═══ -->
+<div id="mypage" class="page">
   <nav>
     <div class="nav-logo"><img src="logo.webp" alt="IPL"/><div><div class="nav-logo-text">IPL</div></div></div>
-    <button class="nav-btn primary" onclick="goTo('lobby')">PLAY NOW</button>
+    <div class="nav-right">
+      <div style="display:flex;gap:3px;" id="lang-switcher-my"></div>
+    </div>
   </nav>
-  <div class="about-body">
-    <div class="about-hero">
-      <img src="logo.webp" class="about-logo-img" alt="IPL"/>
-      <div class="about-ipl">IPL</div>
-      <div class="about-tagline">No Name · No Email · Just Play</div>
-    </div>
-    <div class="about-section">
-      <h2>WHAT IS IPL?</h2>
-      <p>International Poker League — 전 세계 포커 플레이어를 위한 완전 익명 크립토 포커 플랫폼.</p>
-      <p>지갑 하나로 시작. 국기와 닉네임으로 전 세계와 대결. 승리금은 즉시 지갑으로.</p>
-      <div class="stat-grid">
-        <div class="stat-box"><div class="stat-number">$0</div><div class="stat-label">PERSONAL INFO</div></div>
-        <div class="stat-box"><div class="stat-number">3%</div><div class="stat-label">MAX RAKE</div></div>
-        <div class="stat-box"><div class="stat-number">⚡</div><div class="stat-label">INSTANT PAYOUT</div></div>
-        <div class="stat-box"><div class="stat-number">🔒</div><div class="stat-label">SMART CONTRACT</div></div>
+  <div class="page-scroll">
+    <div class="mypage-inner">
+      <div class="profile-card">
+        <span class="profile-flag-big" id="profile-flag">🎭</span>
+        <div class="profile-nick" id="profile-nick">ANONYMOUS</div>
+        <div class="profile-country" id="profile-country">Select your country</div>
+        <div class="profile-stats">
+          <div class="ps-box"><div class="ps-num" id="ps-hands">0</div><div class="ps-lbl" data-i18n="hands">HANDS</div></div>
+          <div class="ps-box"><div class="ps-num" id="ps-profit">$0</div><div class="ps-lbl" data-i18n="profit">PROFIT</div></div>
+          <div class="ps-box"><div class="ps-num" id="ps-winrate">0%</div><div class="ps-lbl" data-i18n="winrate">WIN RATE</div></div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
+          <button class="edit-btn" onclick="openEditNick()" data-i18n="edit_nick">✏️ EDIT NICKNAME</button>
+          <button class="edit-btn" onclick="showCountrySelect(true)" data-i18n="change_country">🌍 CHANGE COUNTRY</button>
+          <button class="edit-btn" onclick="openModal('wallet-modal')" data-i18n="connect_wallet" style="background:var(--neon-dim);color:var(--neon);border:1px solid var(--neon);">🔗 WALLET</button>
+        </div>
       </div>
-    </div>
-    <div class="about-section">
-      <h2>STAKES & FEES</h2>
-      <table class="fee-table">
-        <tr><th>LEVEL</th><th>BUY-IN</th><th>RAKE</th><th>CAP</th></tr>
-        <tr><td>🪙 Micro</td><td>$1 – $10</td><td>3%</td><td>$0.30</td></tr>
-        <tr><td>💵 Mid</td><td>$10 – $100</td><td>3%</td><td>$3</td></tr>
-        <tr><td>💎 High</td><td>$100 – $1,000+</td><td>2%</td><td>$20</td></tr>
-        <tr><td>🏆 SNG</td><td>Any</td><td>+10% fee</td><td>–</td></tr>
-        <tr><td>💰 Referral</td><td colspan="3" style="color:var(--neon)">1.5% (L1) + 0.5% (L2) — lifetime</td></tr>
-      </table>
-    </div>
-    <div class="about-section">
-      <h2>GLOBAL EVENTS</h2>
-      <p>온라인을 넘어 오프라인으로. IPL 채팅에서 만나 실제 카지노에서 대결하세요.</p>
-      <div class="country-flags">
-        <div class="country-pill">🇵🇭 Manila</div>
-        <div class="country-pill">🇲🇴 Macau</div>
-        <div class="country-pill">🇹🇼 Taipei</div>
-        <div class="country-pill">🇯🇵 Tokyo</div>
-        <div class="country-pill">🇰🇷 Seoul</div>
-        <div class="country-pill">🇺🇸 Vegas</div>
+      <div class="ref-card">
+        <h3 data-i18n="my_nation">MY NATION RANK</h3>
+        <div id="my-nation-rank" style="text-align:center;padding:20px;color:var(--grey);font-size:13px;" data-i18n="select_country_first">Select your country first</div>
       </div>
-    </div>
-    <div class="about-section" style="text-align:center">
-      <h2>COMMUNITY</h2>
-      <p>텔레그램에서 IPL 글로벌 커뮤니티에 합류하세요.</p>
-      <a class="tg-btn" href="#">✈️ JOIN IPL TELEGRAM</a>
+      <div class="ref-card" style="text-align:center;">
+        <h3 data-i18n="community">COMMUNITY</h3>
+        <p style="font-size:12px;color:#bbb;margin-bottom:14px;" data-i18n="tg_desc">Join the IPL global poker community on Telegram</p>
+        <a href="#" style="display:inline-flex;align-items:center;gap:8px;background:#0088cc;color:#fff;border:none;padding:12px 24px;border-radius:10px;font-size:14px;font-weight:600;text-decoration:none;">✈️ IPL TELEGRAM</a>
+      </div>
     </div>
   </div>
   <div class="bottom-nav">
-    <button class="bnav-item" onclick="goTo('lobby')"><div class="bnav-icon">🃏</div>LOBBY</button>
-    <button class="bnav-item" onclick="goTo('game-table')"><div class="bnav-icon">🎮</div>PLAY</button>
-    <button class="bnav-item" onclick="goTo('referral')"><div class="bnav-icon">💰</div>REFER</button>
-    <button class="bnav-item active"><div class="bnav-icon">ℹ️</div>ABOUT</button>
+    <button class="bnav-item" onclick="switchPage('lobby',this)"><div class="bnav-icon">🃏</div><span data-i18n="lobby">LOBBY</span></button>
+    <button class="bnav-item" onclick="joinCurrentTable()"><div class="bnav-icon">🎮</div><span data-i18n="play">PLAY</span></button>
+    <button class="bnav-item" onclick="switchPage('referral',this)"><div class="bnav-icon">💰</div><span data-i18n="refer">REFER</span></button>
+    <button class="bnav-item active"><div class="bnav-icon">👤</div><span data-i18n="mypage">MY PAGE</span></button>
   </div>
 </div>
 
 <script>
-// ══════════════════════════════════════
-// TABLES DATA BY STAKE
-// ══════════════════════════════════════
+// ════════════════════════════════════
+// I18N — 8 LANGUAGES
+// ════════════════════════════════════
+const LANGS = {
+  en:{ flag:'🇬🇧', name:'EN' },
+  ko:{ flag:'🇰🇷', name:'한국' },
+  zh:{ flag:'🇨🇳', name:'中文' },
+  ja:{ flag:'🇯🇵', name:'日本' },
+  vi:{ flag:'🇻🇳', name:'Việt' },
+  th:{ flag:'🇹🇭', name:'ไทย' },
+  tl:{ flag:'🇵🇭', name:'Fil' },
+  es:{ flag:'🇪🇸', name:'ES' }
+};
+
+const I18N = {
+  en:{
+    connect_wallet:'Connect Wallet', connect_sub:'No sign-up. No email. Wallet = your identity.',
+    cancel:'Cancel', full_name:'International Poker League',
+    age_q:'Are you 18 years or older?', age_disc:'This platform involves real cryptocurrency wagering.\nYou must be of legal gambling age in your jurisdiction.',
+    enter_yes:'✓  YES — I AM 18 OR OLDER', enter_no:'✗  No, I am under 18',
+    under18_alert:'You must be 18 or older to access this site.',
+    age_legal:'No personal information collected. Wallet address only. Play responsibly.',
+    select_country:'SELECT YOUR COUNTRY', country_sub:"You are your nation's representative 🏆",
+    search_country:'🔍 Search country...', confirm_country:'CONFIRM — ENTER AS REPRESENTATIVE →',
+    choose_stakes:'CHOOSE YOUR STAKES', leaderboard:'LEADERBOARD',
+    players:'PLAYERS', countries:'COUNTRIES', weekly:'WEEKLY',
+    lobby:'LOBBY', play:'PLAY', refer:'REFER', mypage:'MY PAGE',
+    deposit:'↑ Deposit USDC', withdraw:'↓ Withdraw',
+    fold:'FOLD', check:'CHECK', raise:'RAISE', send:'SEND', table_chat:'TABLE CHAT',
+    my_ref_link:'MY REFERRAL LINK', copy:'COPY', invited:'INVITED', earned:'EARNED', this_week:'THIS WEEK',
+    how_it_works:'HOW IT WORKS', ipl_earn:'IPL', level1:'L1 Referral', level2:'L2 Referral',
+    l1_desc:'Every time your direct referral plays', l2_desc:"When your referral's referral plays",
+    smart_auto:'Smart contract auto-pay · Instant · Lifetime',
+    rake_by_stakes:'RAKE BY STAKES', stakes:'STAKES',
+    edit_nick:'✏️ EDIT NICKNAME', change_country:'🌍 CHANGE COUNTRY',
+    my_nation:'MY NATION RANK', select_country_first:'Select your country first',
+    community:'COMMUNITY', tg_desc:'Join the IPL global poker community on Telegram',
+    hands:'HANDS', profit:'PROFIT', winrate:'WIN RATE', edit_profile:'Edit Profile', save:'SAVE',
+    wallet_popular:'Most popular Web3 wallet',
+  },
+  ko:{
+    connect_wallet:'지갑 연결', connect_sub:'가입 불필요. 이메일 없음. 지갑 = 당신의 신원.',
+    cancel:'취소', full_name:'인터내셔널 포커 리그',
+    age_q:'만 18세 이상이신가요?', age_disc:'이 플랫폼은 실제 암호화폐 베팅을 포함합니다.\n해당 지역의 합법적 도박 연령이어야 합니다.',
+    enter_yes:'✓  예 — 18세 이상입니다', enter_no:'✗  아니요, 18세 미만입니다',
+    under18_alert:'18세 이상만 접속 가능합니다.',
+    age_legal:'개인정보 수집 없음. 지갑 주소만. 책임감 있게 플레이하세요.',
+    select_country:'국가 선택', country_sub:'당신은 당신 나라의 대표선수입니다 🏆',
+    search_country:'🔍 국가 검색...', confirm_country:'확인 — 대표선수로 입장 →',
+    choose_stakes:'스테이크 선택', leaderboard:'리더보드',
+    players:'선수', countries:'국가', weekly:'주간',
+    lobby:'로비', play:'플레이', refer:'추천', mypage:'마이페이지',
+    deposit:'↑ USDC 입금', withdraw:'↓ 출금',
+    fold:'폴드', check:'체크', raise:'레이즈', send:'전송', table_chat:'테이블 채팅',
+    my_ref_link:'내 추천 링크', copy:'복사', invited:'초대', earned:'수익', this_week:'이번주',
+    how_it_works:'작동 방식', ipl_earn:'IPL 수익', level1:'1단계 추천', level2:'2단계 추천',
+    l1_desc:'직접 초대한 친구가 게임할 때마다', l2_desc:'친구가 초대한 친구가 게임할 때',
+    smart_auto:'스마트컨트랙트 자동 지급 · 즉시 · 평생',
+    rake_by_stakes:'스테이크별 레이크', stakes:'스테이크',
+    edit_nick:'✏️ 닉네임 변경', change_country:'🌍 국가 변경',
+    my_nation:'내 국가 랭킹', select_country_first:'먼저 국가를 선택하세요',
+    community:'커뮤니티', tg_desc:'텔레그램 IPL 글로벌 포커 커뮤니티에 합류하세요',
+    hands:'핸드', profit:'수익', winrate:'승률', edit_profile:'프로필 편집', save:'저장',
+    wallet_popular:'가장 많이 사용되는 Web3 지갑',
+  },
+  zh:{
+    connect_wallet:'连接钱包', connect_sub:'无需注册。无需邮箱。钱包即身份。',
+    cancel:'取消', full_name:'国际扑克联盟',
+    age_q:'您是否年满18岁？', age_disc:'本平台涉及真实加密货币投注。\n您必须达到所在地区的合法赌博年龄。',
+    enter_yes:'✓  是的 — 我已满18岁', enter_no:'✗  不，我未满18岁',
+    under18_alert:'您必须年满18岁才能访问本网站。',
+    age_legal:'不收集个人信息。仅限钱包地址。请负责任地游戏。',
+    select_country:'选择您的国家', country_sub:'您是您国家的代表选手 🏆',
+    search_country:'🔍 搜索国家...', confirm_country:'确认 — 以代表身份入场 →',
+    choose_stakes:'选择筹码级别', leaderboard:'排行榜',
+    players:'玩家', countries:'国家', weekly:'本周',
+    lobby:'大厅', play:'游戏', refer:'推荐', mypage:'我的主页',
+    deposit:'↑ 存入USDC', withdraw:'↓ 提款',
+    fold:'弃牌', check:'过牌', raise:'加注', send:'发送', table_chat:'桌内聊天',
+    my_ref_link:'我的推荐链接', copy:'复制', invited:'邀请', earned:'收益', this_week:'本周',
+    how_it_works:'运作方式', ipl_earn:'IPL收益', level1:'一级推荐', level2:'二级推荐',
+    l1_desc:'每次直接邀请的朋友游戏时', l2_desc:'朋友邀请的朋友游戏时',
+    smart_auto:'智能合约自动支付 · 即时 · 终身',
+    rake_by_stakes:'各级别抽水', stakes:'级别',
+    edit_nick:'✏️ 编辑昵称', change_country:'🌍 更改国家',
+    my_nation:'我的国家排名', select_country_first:'请先选择您的国家',
+    community:'社区', tg_desc:'加入IPL全球扑克社区Telegram',
+    hands:'手数', profit:'收益', winrate:'胜率', edit_profile:'编辑资料', save:'保存',
+    wallet_popular:'最流行的Web3钱包',
+  },
+  ja:{
+    connect_wallet:'ウォレット接続', connect_sub:'登録不要。メール不要。ウォレット=あなたの身分。',
+    cancel:'キャンセル', full_name:'インターナショナルポーカーリーグ',
+    age_q:'18歳以上ですか？', age_disc:'このプラットフォームは実際の暗号通貨賭博を含みます。\nご利用の地域の合法的なギャンブル年齢である必要があります。',
+    enter_yes:'✓  はい — 18歳以上です', enter_no:'✗  いいえ、18歳未満です',
+    under18_alert:'18歳以上のみアクセス可能です。',
+    age_legal:'個人情報収集なし。ウォレットアドレスのみ。責任をもってプレイしてください。',
+    select_country:'国を選択', country_sub:'あなたは自国の代表選手です 🏆',
+    search_country:'🔍 国を検索...', confirm_country:'確認 — 代表として入場 →',
+    choose_stakes:'ステークスを選択', leaderboard:'リーダーボード',
+    players:'プレイヤー', countries:'国家', weekly:'週間',
+    lobby:'ロビー', play:'プレイ', refer:'紹介', mypage:'マイページ',
+    deposit:'↑ USDC入金', withdraw:'↓ 出金',
+    fold:'フォールド', check:'チェック', raise:'レイズ', send:'送信', table_chat:'テーブルチャット',
+    my_ref_link:'紹介リンク', copy:'コピー', invited:'招待', earned:'収益', this_week:'今週',
+    how_it_works:'仕組み', ipl_earn:'IPL収益', level1:'1段階紹介', level2:'2段階紹介',
+    l1_desc:'直接招待した友人がプレイするたび', l2_desc:'友人が招待した友人がプレイするとき',
+    smart_auto:'スマートコントラクト自動支払い · 即時 · 生涯',
+    rake_by_stakes:'ステークス別レイク', stakes:'ステークス',
+    edit_nick:'✏️ ニックネーム編集', change_country:'🌍 国変更',
+    my_nation:'自国ランキング', select_country_first:'まず国を選択してください',
+    community:'コミュニティ', tg_desc:'IPLグローバルポーカーコミュニティのTelegramに参加',
+    hands:'ハンド', profit:'収益', winrate:'勝率', edit_profile:'プロフィール編集', save:'保存',
+    wallet_popular:'最も人気のWeb3ウォレット',
+  },
+  vi:{
+    connect_wallet:'Kết nối Ví', connect_sub:'Không cần đăng ký. Không cần email. Ví = danh tính của bạn.',
+    cancel:'Hủy', full_name:'Giải Poker Quốc Tế',
+    age_q:'Bạn có đủ 18 tuổi không?', age_disc:'Nền tảng này liên quan đến cược tiền mã hóa thực.\nBạn phải đủ tuổi cờ bạc hợp pháp tại khu vực của mình.',
+    enter_yes:'✓  CÓ — TÔI ĐỦ 18 TUỔI', enter_no:'✗  Không, tôi dưới 18 tuổi',
+    under18_alert:'Bạn phải đủ 18 tuổi để truy cập trang web này.',
+    age_legal:'Không thu thập thông tin cá nhân. Chỉ địa chỉ ví. Chơi có trách nhiệm.',
+    select_country:'CHỌN QUỐC GIA', country_sub:'Bạn là đại diện của quốc gia mình 🏆',
+    search_country:'🔍 Tìm kiếm quốc gia...', confirm_country:'XÁC NHẬN — VÀO VỚI TƯ CÁCH ĐẠI DIỆN →',
+    choose_stakes:'CHỌN MỨC CƯỢC', leaderboard:'BẢNG XẾP HẠNG',
+    players:'NGƯỜI CHƠI', countries:'QUỐC GIA', weekly:'TUẦN NÀY',
+    lobby:'SẢNH', play:'CHƠI', refer:'GIỚI THIỆU', mypage:'TRANG CỦA TÔI',
+    deposit:'↑ Nạp USDC', withdraw:'↓ Rút tiền',
+    fold:'BỎ BÀI', check:'KIỂM TRA', raise:'TĂNG CƯỢC', send:'GỬI', table_chat:'CHAT BÀN',
+    my_ref_link:'LINK GIỚI THIỆU', copy:'SAO CHÉP', invited:'ĐÃ MỜI', earned:'ĐÃ KIẾM', this_week:'TUẦN NÀY',
+    how_it_works:'CÁCH HOẠT ĐỘNG', ipl_earn:'IPL', level1:'Cấp 1', level2:'Cấp 2',
+    l1_desc:'Mỗi khi bạn bè được mời trực tiếp chơi', l2_desc:'Khi bạn bè của bạn bè chơi',
+    smart_auto:'Hợp đồng thông minh tự động · Tức thì · Trọn đời',
+    rake_by_stakes:'RAKE THEO CẤP', stakes:'CẤP ĐỘ',
+    edit_nick:'✏️ SỬA BIỆT DANH', change_country:'🌍 ĐỔI QUỐC GIA',
+    my_nation:'HẠNG QUỐC GIA', select_country_first:'Chọn quốc gia trước',
+    community:'CỘNG ĐỒNG', tg_desc:'Tham gia cộng đồng Poker toàn cầu IPL trên Telegram',
+    hands:'VÁN', profit:'LỢI NHUẬN', winrate:'TỶ LỆ THẮNG', edit_profile:'Chỉnh sửa', save:'LƯU',
+    wallet_popular:'Ví Web3 phổ biến nhất',
+  },
+  th:{
+    connect_wallet:'เชื่อมต่อวอลเล็ต', connect_sub:'ไม่ต้องสมัคร ไม่ต้องใช้อีเมล วอลเล็ต = ตัวตนของคุณ',
+    cancel:'ยกเลิก', full_name:'International Poker League',
+    age_q:'คุณอายุ 18 ปีขึ้นไปหรือไม่?', age_disc:'แพลตฟอร์มนี้เกี่ยวข้องกับการเดิมพันสกุลเงินดิจิทัลจริง\nคุณต้องมีอายุตามกฎหมายในการพนันในเขตอำนาจของคุณ',
+    enter_yes:'✓  ใช่ — ฉันอายุ 18 ปีขึ้นไป', enter_no:'✗  ไม่ ฉันอายุต่ำกว่า 18 ปี',
+    under18_alert:'คุณต้องมีอายุ 18 ปีขึ้นไปจึงจะเข้าถึงเว็บไซต์นี้ได้',
+    age_legal:'ไม่เก็บข้อมูลส่วนตัว ใช้เฉพาะที่อยู่วอลเล็ต เล่นอย่างมีความรับผิดชอบ',
+    select_country:'เลือกประเทศของคุณ', country_sub:'คุณคือตัวแทนของประเทศ 🏆',
+    search_country:'🔍 ค้นหาประเทศ...', confirm_country:'ยืนยัน — เข้าสู่ในฐานะตัวแทน →',
+    choose_stakes:'เลือกระดับเดิมพัน', leaderboard:'ลีดเดอร์บอร์ด',
+    players:'ผู้เล่น', countries:'ประเทศ', weekly:'รายสัปดาห์',
+    lobby:'ล็อบบี้', play:'เล่น', refer:'แนะนำ', mypage:'หน้าของฉัน',
+    deposit:'↑ ฝาก USDC', withdraw:'↓ ถอน',
+    fold:'FOLD', check:'CHECK', raise:'RAISE', send:'ส่ง', table_chat:'แชทโต๊ะ',
+    my_ref_link:'ลิงก์แนะนำของฉัน', copy:'คัดลอก', invited:'เชิญ', earned:'ได้รับ', this_week:'สัปดาห์นี้',
+    how_it_works:'วิธีการทำงาน', ipl_earn:'IPL', level1:'ระดับ 1', level2:'ระดับ 2',
+    l1_desc:'ทุกครั้งที่เพื่อนที่คุณเชิญโดยตรงเล่น', l2_desc:'เมื่อเพื่อนของเพื่อนเล่น',
+    smart_auto:'สัญญาอัจฉริยะจ่ายอัตโนมัติ · ทันที · ตลอดชีพ',
+    rake_by_stakes:'RAKE ตามระดับ', stakes:'ระดับ',
+    edit_nick:'✏️ แก้ไขชื่อเล่น', change_country:'🌍 เปลี่ยนประเทศ',
+    my_nation:'อันดับประเทศของฉัน', select_country_first:'กรุณาเลือกประเทศก่อน',
+    community:'ชุมชน', tg_desc:'เข้าร่วมชุมชนโปกเกอร์ IPL ระดับโลกบน Telegram',
+    hands:'มือ', profit:'กำไร', winrate:'อัตราชนะ', edit_profile:'แก้ไขโปรไฟล์', save:'บันทึก',
+    wallet_popular:'วอลเล็ต Web3 ที่ได้รับความนิยมมากที่สุด',
+  },
+  tl:{
+    connect_wallet:'Ikonekta ang Wallet', connect_sub:'Hindi kailangan ng sign-up. Walang email. Wallet = iyong pagkakakilanlan.',
+    cancel:'Kanselahin', full_name:'International Poker League',
+    age_q:'18 taong gulang ka na ba o higit pa?', age_disc:'Ang platform na ito ay nagsasangkot ng tunay na cryptocurrency na pagtaya.\nKailangan mong nasa legal na edad ng pagsusugal sa iyong hurisdiksyon.',
+    enter_yes:'✓  OO — 18 TAONG GULANG AKO O HIGIT PA', enter_no:'✗  Hindi, wala pa akong 18 taong gulang',
+    under18_alert:'Dapat kang 18 taong gulang o higit pa para ma-access ang site na ito.',
+    age_legal:'Walang personal na impormasyon na nakolekta. Wallet address lamang. Maglaro nang responsable.',
+    select_country:'PILIIN ANG IYONG BANSA', country_sub:'Ikaw ang kinatawan ng iyong bansa 🏆',
+    search_country:'🔍 Maghanap ng bansa...', confirm_country:'KUMPIRMAHIN — PUMASOK BILANG KINATAWAN →',
+    choose_stakes:'PILIIN ANG STAKES', leaderboard:'LEADERBOARD',
+    players:'MGA MANLALARO', countries:'MGA BANSA', weekly:'LINGGUHANG',
+    lobby:'LOBBY', play:'MAGLARO', refer:'MAG-REFER', mypage:'AKING PAHINA',
+    deposit:'↑ Mag-deposit ng USDC', withdraw:'↓ Mag-withdraw',
+    fold:'FOLD', check:'CHECK', raise:'RAISE', send:'IPADALA', table_chat:'TABLE CHAT',
+    my_ref_link:'AKING REFERRAL LINK', copy:'KOPYAHIN', invited:'INIMBITAHAN', earned:'KINITA', this_week:'LINGGONG ITO',
+    how_it_works:'PAANO ITO GUMAGANA', ipl_earn:'IPL', level1:'Antas 1', level2:'Antas 2',
+    l1_desc:'Sa tuwing ang iyong direktang referral ay maglalaro', l2_desc:"Kapag ang referral ng iyong referral ay maglalaro",
+    smart_auto:'Smart contract auto-bayad · Agad · Habambuhay',
+    rake_by_stakes:'RAKE AYON SA STAKES', stakes:'STAKES',
+    edit_nick:'✏️ I-EDIT ANG PALAYAW', change_country:'🌍 BAGUHIN ANG BANSA',
+    my_nation:'RANGGO NG AKING BANSA', select_country_first:'Piliin muna ang iyong bansa',
+    community:'KOMUNIDAD', tg_desc:'Sumali sa IPL global poker community sa Telegram',
+    hands:'MGA KAMAY', profit:'KITA', winrate:'RATE NG PANALO', edit_profile:'I-edit', save:'I-SAVE',
+    wallet_popular:'Pinaka-popular na Web3 wallet',
+  },
+  es:{
+    connect_wallet:'Conectar Billetera', connect_sub:'Sin registro. Sin correo. Billetera = tu identidad.',
+    cancel:'Cancelar', full_name:'Liga Internacional de Póker',
+    age_q:'¿Tienes 18 años o más?', age_disc:'Esta plataforma involucra apuestas reales de criptomonedas.\nDebes tener la edad legal para jugar en tu jurisdicción.',
+    enter_yes:'✓  SÍ — TENGO 18 AÑOS O MÁS', enter_no:'✗  No, soy menor de 18 años',
+    under18_alert:'Debes tener 18 años o más para acceder a este sitio.',
+    age_legal:'No se recopila información personal. Solo dirección de billetera. Juega responsablemente.',
+    select_country:'SELECCIONA TU PAÍS', country_sub:'Eres el representante de tu nación 🏆',
+    search_country:'🔍 Buscar país...', confirm_country:'CONFIRMAR — ENTRAR COMO REPRESENTANTE →',
+    choose_stakes:'ELIGE TUS APUESTAS', leaderboard:'TABLA DE LÍDERES',
+    players:'JUGADORES', countries:'PAÍSES', weekly:'SEMANAL',
+    lobby:'LOBBY', play:'JUGAR', refer:'REFERIR', mypage:'MI PÁGINA',
+    deposit:'↑ Depositar USDC', withdraw:'↓ Retirar',
+    fold:'RETIRARSE', check:'PASAR', raise:'SUBIR', send:'ENVIAR', table_chat:'CHAT DE MESA',
+    my_ref_link:'MI ENLACE DE REFERIDO', copy:'COPIAR', invited:'INVITADOS', earned:'GANADO', this_week:'ESTA SEMANA',
+    how_it_works:'CÓMO FUNCIONA', ipl_earn:'IPL', level1:'Nivel 1', level2:'Nivel 2',
+    l1_desc:'Cada vez que tu referido directo juega', l2_desc:'Cuando el referido de tu referido juega',
+    smart_auto:'Contrato inteligente autopago · Instantáneo · De por vida',
+    rake_by_stakes:'RAKE POR NIVEL', stakes:'NIVEL',
+    edit_nick:'✏️ EDITAR APODO', change_country:'🌍 CAMBIAR PAÍS',
+    my_nation:'RANGO DE MI NACIÓN', select_country_first:'Selecciona tu país primero',
+    community:'COMUNIDAD', tg_desc:'Únete a la comunidad global de póker IPL en Telegram',
+    hands:'MANOS', profit:'BENEFICIO', winrate:'TASA DE VICTORIA', edit_profile:'Editar', save:'GUARDAR',
+    wallet_popular:'Billetera Web3 más popular',
+  }
+};
+
+let curLang = localStorage.getItem('ipl_lang') || 'en';
+
+function T(key) { return (I18N[curLang] && I18N[curLang][key]) || I18N['en'][key] || key; }
+
+function applyLang() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (el.tagName === 'INPUT') el.placeholder = T(key);
+    else el.textContent = T(key);
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    el.placeholder = T(el.getAttribute('data-i18n-placeholder'));
+  });
+  // sync all lang switchers
+  document.querySelectorAll('.lang-switcher-group').forEach(g => renderLangSwitcher(g));
+}
+
+function setLang(l) {
+  curLang = l; localStorage.setItem('ipl_lang', l);
+  applyLang();
+}
+
+function renderLangSwitcher(container) {
+  container.innerHTML = Object.entries(LANGS).map(([code, info]) =>
+    `<button class="lang-btn${code===curLang?' active':''}" onclick="setLang('${code}')">${info.name}</button>`
+  ).join('');
+}
+
+function initLangSwitchers() {
+  ['lang-switcher','lang-switcher-ref','lang-switcher-my'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.classList.add('lang-switcher-group'); renderLangSwitcher(el); }
+  });
+}
+
+// ════════════════════════════════════
+// COUNTRIES (185개)
+// ════════════════════════════════════
+const COUNTRIES = [
+  {c:'🇦🇫',n:'Afghanistan'},{c:'🇦🇱',n:'Albania'},{c:'🇩🇿',n:'Algeria'},{c:'🇦🇩',n:'Andorra'},{c:'🇦🇴',n:'Angola'},
+  {c:'🇦🇬',n:'Antigua & Barbuda'},{c:'🇦🇷',n:'Argentina'},{c:'🇦🇲',n:'Armenia'},{c:'🇦🇺',n:'Australia'},{c:'🇦🇹',n:'Austria'},
+  {c:'🇦🇿',n:'Azerbaijan'},{c:'🇧🇸',n:'Bahamas'},{c:'🇧🇭',n:'Bahrain'},{c:'🇧🇩',n:'Bangladesh'},{c:'🇧🇧',n:'Barbados'},
+  {c:'🇧🇾',n:'Belarus'},{c:'🇧🇪',n:'Belgium'},{c:'🇧🇿',n:'Belize'},{c:'🇧🇯',n:'Benin'},{c:'🇧🇹',n:'Bhutan'},
+  {c:'🇧🇴',n:'Bolivia'},{c:'🇧🇦',n:'Bosnia'},{c:'🇧🇼',n:'Botswana'},{c:'🇧🇷',n:'Brazil'},{c:'🇧🇳',n:'Brunei'},
+  {c:'🇧🇬',n:'Bulgaria'},{c:'🇧🇫',n:'Burkina Faso'},{c:'🇧🇮',n:'Burundi'},{c:'🇨🇻',n:'Cabo Verde'},{c:'🇰🇭',n:'Cambodia'},
+  {c:'🇨🇲',n:'Cameroon'},{c:'🇨🇦',n:'Canada'},{c:'🇨🇫',n:'C. African Rep.'},{c:'🇹🇩',n:'Chad'},{c:'🇨🇱',n:'Chile'},
+  {c:'🇨🇳',n:'China'},{c:'🇨🇴',n:'Colombia'},{c:'🇰🇲',n:'Comoros'},{c:'🇨🇬',n:'Congo'},{c:'🇨🇷',n:'Costa Rica'},
+  {c:'🇭🇷',n:'Croatia'},{c:'🇨🇺',n:'Cuba'},{c:'🇨🇾',n:'Cyprus'},{c:'🇨🇿',n:'Czech Rep.'},{c:'🇩🇰',n:'Denmark'},
+  {c:'🇩🇯',n:'Djibouti'},{c:'🇩🇴',n:'Dominican Rep.'},{c:'🇪🇨',n:'Ecuador'},{c:'🇪🇬',n:'Egypt'},{c:'🇸🇻',n:'El Salvador'},
+  {c:'🇬🇶',n:'Eq. Guinea'},{c:'🇪🇷',n:'Eritrea'},{c:'🇪🇪',n:'Estonia'},{c:'🇸🇿',n:'Eswatini'},{c:'🇪🇹',n:'Ethiopia'},
+  {c:'🇫🇯',n:'Fiji'},{c:'🇫🇮',n:'Finland'},{c:'🇫🇷',n:'France'},{c:'🇬🇦',n:'Gabon'},{c:'🇬🇲',n:'Gambia'},
+  {c:'🇬🇪',n:'Georgia'},{c:'🇩🇪',n:'Germany'},{c:'🇬🇭',n:'Ghana'},{c:'🇬🇷',n:'Greece'},{c:'🇬🇩',n:'Grenada'},
+  {c:'🇬🇹',n:'Guatemala'},{c:'🇬🇳',n:'Guinea'},{c:'🇬🇼',n:'Guinea-Bissau'},{c:'🇬🇾',n:'Guyana'},{c:'🇭🇹',n:'Haiti'},
+  {c:'🇭🇳',n:'Honduras'},{c:'🇭🇺',n:'Hungary'},{c:'🇮🇸',n:'Iceland'},{c:'🇮🇳',n:'India'},{c:'🇮🇩',n:'Indonesia'},
+  {c:'🇮🇷',n:'Iran'},{c:'🇮🇶',n:'Iraq'},{c:'🇮🇪',n:'Ireland'},{c:'🇮🇱',n:'Israel'},{c:'🇮🇹',n:'Italy'},
+  {c:'🇯🇲',n:'Jamaica'},{c:'🇯🇵',n:'Japan'},{c:'🇯🇴',n:'Jordan'},{c:'🇰🇿',n:'Kazakhstan'},{c:'🇰🇪',n:'Kenya'},
+  {c:'🇰🇮',n:'Kiribati'},{c:'🇰🇼',n:'Kuwait'},{c:'🇰🇬',n:'Kyrgyzstan'},{c:'🇱🇦',n:'Laos'},{c:'🇱🇻',n:'Latvia'},
+  {c:'🇱🇧',n:'Lebanon'},{c:'🇱🇸',n:'Lesotho'},{c:'🇱🇷',n:'Liberia'},{c:'🇱🇾',n:'Libya'},{c:'🇱🇮',n:'Liechtenstein'},
+  {c:'🇱🇹',n:'Lithuania'},{c:'🇱🇺',n:'Luxembourg'},{c:'🇲🇬',n:'Madagascar'},{c:'🇲🇼',n:'Malawi'},{c:'🇲🇾',n:'Malaysia'},
+  {c:'🇲🇻',n:'Maldives'},{c:'🇲🇱',n:'Mali'},{c:'🇲🇹',n:'Malta'},{c:'🇲🇭',n:'Marshall Islands'},{c:'🇲🇷',n:'Mauritania'},
+  {c:'🇲🇺',n:'Mauritius'},{c:'🇲🇽',n:'Mexico'},{c:'🇫🇲',n:'Micronesia'},{c:'🇲🇩',n:'Moldova'},{c:'🇲🇨',n:'Monaco'},
+  {c:'🇲🇳',n:'Mongolia'},{c:'🇲🇪',n:'Montenegro'},{c:'🇲🇦',n:'Morocco'},{c:'🇲🇿',n:'Mozambique'},{c:'🇲🇲',n:'Myanmar'},
+  {c:'🇳🇦',n:'Namibia'},{c:'🇳🇷',n:'Nauru'},{c:'🇳🇵',n:'Nepal'},{c:'🇳🇱',n:'Netherlands'},{c:'🇳🇿',n:'New Zealand'},
+  {c:'🇳🇮',n:'Nicaragua'},{c:'🇳🇪',n:'Niger'},{c:'🇳🇬',n:'Nigeria'},{c:'🇲🇰',n:'N. Macedonia'},{c:'🇳🇴',n:'Norway'},
+  {c:'🇴🇲',n:'Oman'},{c:'🇵🇰',n:'Pakistan'},{c:'🇵🇼',n:'Palau'},{c:'🇵🇦',n:'Panama'},{c:'🇵🇬',n:'Papua N. Guinea'},
+  {c:'🇵🇾',n:'Paraguay'},{c:'🇵🇪',n:'Peru'},{c:'🇵🇭',n:'Philippines'},{c:'🇵🇱',n:'Poland'},{c:'🇵🇹',n:'Portugal'},
+  {c:'🇶🇦',n:'Qatar'},{c:'🇷🇴',n:'Romania'},{c:'🇷🇺',n:'Russia'},{c:'🇷🇼',n:'Rwanda'},{c:'🇰🇳',n:'St. Kitts'},
+  {c:'🇱🇨',n:'St. Lucia'},{c:'🇻🇨',n:'St. Vincent'},{c:'🇼🇸',n:'Samoa'},{c:'🇸🇲',n:'San Marino'},{c:'🇸🇹',n:'Sao Tome'},
+  {c:'🇸🇦',n:'Saudi Arabia'},{c:'🇸🇳',n:'Senegal'},{c:'🇷🇸',n:'Serbia'},{c:'🇸🇨',n:'Seychelles'},{c:'🇸🇱',n:'Sierra Leone'},
+  {c:'🇸🇬',n:'Singapore'},{c:'🇸🇰',n:'Slovakia'},{c:'🇸🇮',n:'Slovenia'},{c:'🇸🇧',n:'Solomon Islands'},{c:'🇸🇴',n:'Somalia'},
+  {c:'🇿🇦',n:'South Africa'},{c:'🇸🇸',n:'South Sudan'},{c:'🇪🇸',n:'Spain'},{c:'🇱🇰',n:'Sri Lanka'},{c:'🇸🇩',n:'Sudan'},
+  {c:'🇸🇷',n:'Suriname'},{c:'🇸🇪',n:'Sweden'},{c:'🇨🇭',n:'Switzerland'},{c:'🇸🇾',n:'Syria'},{c:'🇹🇼',n:'Taiwan'},
+  {c:'🇹🇯',n:'Tajikistan'},{c:'🇹🇿',n:'Tanzania'},{c:'🇹🇭',n:'Thailand'},{c:'🇹🇱',n:'Timor-Leste'},{c:'🇹🇬',n:'Togo'},
+  {c:'🇹🇴',n:'Tonga'},{c:'🇹🇹',n:'Trinidad & Tobago'},{c:'🇹🇳',n:'Tunisia'},{c:'🇹🇷',n:'Turkey'},{c:'🇹🇲',n:'Turkmenistan'},
+  {c:'🇹🇻',n:'Tuvalu'},{c:'🇺🇬',n:'Uganda'},{c:'🇺🇦',n:'Ukraine'},{c:'🇦🇪',n:'UAE'},{c:'🇬🇧',n:'United Kingdom'},
+  {c:'🇺🇸',n:'United States'},{c:'🇺🇾',n:'Uruguay'},{c:'🇺🇿',n:'Uzbekistan'},{c:'🇻🇺',n:'Vanuatu'},{c:'🇻🇪',n:'Venezuela'},
+  {c:'🇻🇳',n:'Vietnam'},{c:'🇾🇪',n:'Yemen'},{c:'🇿🇲',n:'Zambia'},{c:'🇿🇼',n:'Zimbabwe'},{c:'🇲🇴',n:'Macau'},
+  {c:'🇭🇰',n:'Hong Kong'}
+];
+
+const RANDOM_NICKS = ['AceKing','RiverRat','BluffMaster','AllInKing','PokerFace','ChipLeader','RoyalFlush','FlopHunter','TiltProof','DeadMoney','BadBeat','RaiseKing','NightOwl','CardSharp','TexasGun'];
+
+let selectedCountry = null;
+let fromMyPage = false;
+
+function showCountrySelect(fromMy = false) {
+  fromMyPage = fromMy;
+  const screen = document.getElementById('country-screen');
+  screen.classList.remove('hidden');
+  renderCountryGrid(COUNTRIES);
+  document.getElementById('country-search').value = '';
+  // highlight if already selected
+  if (STATE.country) {
+    selectedCountry = STATE.country;
+  }
+}
+
+function filterCountries(q) {
+  const filtered = q ? COUNTRIES.filter(c => c.n.toLowerCase().includes(q.toLowerCase())) : COUNTRIES;
+  renderCountryGrid(filtered);
+}
+
+function renderCountryGrid(list) {
+  const grid = document.getElementById('country-grid');
+  grid.innerHTML = list.map(c =>
+    `<div class="country-btn${selectedCountry && selectedCountry.n===c.n?' selected':''}" onclick="selectCountry(this,'${c.c}','${c.n}')">
+      <span class="cflag">${c.c}</span>
+      <span class="cname">${c.n}</span>
+    </div>`
+  ).join('');
+}
+
+function selectCountry(el, flag, name) {
+  document.querySelectorAll('.country-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedCountry = { flag, name };
+}
+
+function confirmCountry() {
+  if (!selectedCountry) { showToast('⚠️ ' + T('select_country')); return; }
+  STATE.country = selectedCountry;
+  STATE.flag = selectedCountry.flag;
+  // assign random nick if none
+  if (!STATE.nickname) {
+    STATE.nickname = RANDOM_NICKS[Math.floor(Math.random()*RANDOM_NICKS.length)] + Math.floor(Math.random()*999);
+  }
+  saveProfile();
+  updatePlayerUI();
+  document.getElementById('country-screen').classList.add('hidden');
+  if (fromMyPage) {
+    switchPage('mypage', null);
+  } else {
+    openModal('wallet-modal');
+  }
+}
+
+// ════════════════════════════════════
+// TABLES DATA
+// ════════════════════════════════════
 const TABLES = {
-  micro: [
-    { type:'heads', label:'Heads Up', blinds:'$0.50/$1', max:2, players:'1/2 🟢', buyin:'$10–$20' },
-    { type:'cash',  label:'6-Max · Micro', blinds:'$0.50/$1', max:6, players:'3/6 🟢', buyin:'$20–$50' },
-    { type:'cash',  label:'6-Max · Low',   blinds:'$1/$2',    max:6, players:'4/6 🟢', buyin:'$40–$100' },
-    { type:'sng',   label:'SNG · 6-handed', blinds:'$5+$0.5', max:6, players:'2/6 ⏳', buyin:'$5' },
+  micro:[
+    {type:'heads',label:'Heads Up',blinds:'$0.50/$1',players:'1/2 🟢',buyin:'$10–$20'},
+    {type:'cash',label:'6-Max · Micro',blinds:'$0.50/$1',players:'3/6 🟢',buyin:'$20–$50'},
+    {type:'cash',label:'6-Max · Low',blinds:'$1/$2',players:'4/6 🟢',buyin:'$40–$100'},
+    {type:'sng',label:'SNG · 6-handed',blinds:'$5+$0.5',players:'2/6 ⏳',buyin:'$5'},
   ],
-  mid: [
-    { type:'heads', label:'Heads Up · Mid', blinds:'$5/$10',   max:2, players:'1/2 🟢', buyin:'$100–$500' },
-    { type:'cash',  label:'6-Max · Mid',    blinds:'$5/$10',   max:6, players:'5/6 🟢', buyin:'$200–$1K' },
-    { type:'cash',  label:'6-Max · Upper',  blinds:'$10/$20',  max:6, players:'3/6 🟢', buyin:'$400–$2K' },
-    { type:'sng',   label:'SNG · $50 Buy-in', blinds:'$50+$5', max:9, players:'6/9 ⏳', buyin:'$50' },
+  mid:[
+    {type:'heads',label:'Heads Up · Mid',blinds:'$5/$10',players:'1/2 🟢',buyin:'$100–$500'},
+    {type:'cash',label:'6-Max · Mid',blinds:'$5/$10',players:'5/6 🟢',buyin:'$200–$1K'},
+    {type:'cash',label:'6-Max · Upper',blinds:'$10/$20',players:'3/6 🟢',buyin:'$400–$2K'},
+    {type:'sng',label:'SNG · $50 Buy-in',blinds:'$50+$5',players:'6/9 ⏳',buyin:'$50'},
   ],
-  high: [
-    { type:'heads', label:'Heads Up · High',  blinds:'$25/$50',  max:2, players:'0/2 🔴', buyin:'$1K–$5K' },
-    { type:'cash',  label:'6-Max · High',     blinds:'$25/$50',  max:6, players:'2/6 🟢', buyin:'$2K–$10K' },
-    { type:'cash',  label:'6-Max · Nosebleed',blinds:'$50/$100', max:6, players:'1/6 🟢', buyin:'$5K+' },
-    { type:'sng',   label:'SNG · $100 Buy-in','blinds':'$100+$10', max:9, players:'3/9 ⏳', buyin:'$100' },
+  high:[
+    {type:'heads',label:'Heads Up · High',blinds:'$25/$50',players:'0/2 🔴',buyin:'$1K–$5K'},
+    {type:'cash',label:'6-Max · High',blinds:'$25/$50',players:'2/6 🟢',buyin:'$2K–$10K'},
+    {type:'cash',label:'6-Max · Nosebleed',blinds:'$50/$100',players:'1/6 🟢',buyin:'$5K+'},
+    {type:'sng',label:'SNG · $100 Buy-in',blinds:'$100+$10',players:'3/9 ⏳',buyin:'$100'},
   ]
 };
-
-const RAKE_INFO = {
-  micro: { rake:'3%', cap:'$0.30' },
-  mid:   { rake:'3%', cap:'$3' },
-  high:  { rake:'2%', cap:'$20' }
-};
-
+const RAKE_INFO = {micro:{r:'3%',cap:'$0.30'},mid:{r:'3%',cap:'$3'},high:{r:'2%',cap:'$20'}};
 let currentStake = 'micro';
 
 function setStake(stake, el) {
   currentStake = stake;
-  document.querySelectorAll('.stake-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.stake-tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
   renderTables(stake);
 }
 
 function renderTables(stake) {
   const grid = document.getElementById('table-grid');
-  const tables = TABLES[stake];
-  const info = RAKE_INFO[stake];
-  grid.innerHTML = tables.map(t => `
+  const ri = RAKE_INFO[stake];
+  grid.innerHTML = TABLES[stake].map(t => `
     <div class="table-row" onclick="joinTable('${t.type}','${t.blinds}')">
-      <div class="table-type ${t.type==='cash'?'tt-cash':t.type==='heads'?'tt-heads':'tt-sng'}">${t.type==='cash'?'CASH':t.type==='heads'?'HEADS UP':'SNG'}</div>
-      <div>
+      <div class="table-type ${t.type==='cash'?'tt-cash':t.type==='heads'?'tt-heads':'tt-sng'}">${t.type==='cash'?'CASH':t.type==='heads'?'1v1':'SNG'}</div>
+      <div style="flex:1">
         <div class="table-name">${t.label}</div>
-        <div style="font-size:10px;color:var(--grey);margin-top:2px">Buy-in: ${t.buyin}</div>
+        <div class="table-buyin">Buy-in: ${t.buyin}</div>
       </div>
       <div>
         <div class="table-stakes">${t.blinds}</div>
-        <div class="rake-badge">${info.rake} · cap ${info.cap}</div>
+        <div class="rake-tag">${ri.r} · max ${ri.cap}</div>
       </div>
       <div class="table-players">${t.players}</div>
       <button class="join-btn">JOIN</button>
@@ -672,35 +927,86 @@ function renderTables(stake) {
   `).join('');
 }
 
-// ══════════════════════════════════════
-// STATE
-// ══════════════════════════════════════
-const STATE = { wallet:null, provider:null, signer:null, nickname:'', flag:'🎭', balance:0 };
-const USDC_ADDRESS = '0x036CbD53842c5426634e7929541eC2318f3dCF7e';
+// ════════════════════════════════════
+// LEADERBOARD
+// ════════════════════════════════════
+const LB_PLAYERS = [
+  {rank:'🥇',flag:'🇵🇭',name:'ManilaAce',profit:'+$2,140',badge:'🔥 HOT'},
+  {rank:'🥈',flag:'🇰🇷',name:'PokerKing',profit:'+$1,820',badge:'⚡ YOU'},
+  {rank:'🥉',flag:'🇯🇵',name:'TokyoBluff',profit:'+$1,340',badge:''},
+  {rank:'#4',flag:'🇹🇼',name:'DragonChip',profit:'+$980',badge:''},
+  {rank:'#5',flag:'🇺🇸',name:'VegasWolf',profit:'+$740',badge:''},
+  {rank:'#6',flag:'🇻🇳',name:'SaigonBluff',profit:'+$620',badge:''},
+  {rank:'#7',flag:'🇨🇳',name:'DragonKing',profit:'+$580',badge:''},
+  {rank:'#8',flag:'🇹🇭',name:'BkkAce',profit:'+$430',badge:''},
+];
+const LB_COUNTRIES = [
+  {flag:'🇵🇭',name:'Philippines',score:45200,pct:100},
+  {flag:'🇰🇷',name:'Korea',score:38100,pct:84},
+  {flag:'🇯🇵',name:'Japan',score:31400,pct:70},
+  {flag:'🇹🇼',name:'Taiwan',score:28900,pct:64},
+  {flag:'🇻🇳',name:'Vietnam',score:22300,pct:49},
+  {flag:'🇨🇳',name:'China',score:19800,pct:44},
+  {flag:'🇺🇸',name:'USA',score:17200,pct:38},
+  {flag:'🇹🇭',name:'Thailand',score:14100,pct:31},
+];
+
+let curLbTab = 'player';
+function setLbTab(tab, el) {
+  curLbTab = tab;
+  document.querySelectorAll('.lb-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderLeaderboard(tab);
+}
+
+function renderLeaderboard(tab) {
+  const el = document.getElementById('leaderboard-content');
+  if (tab === 'country') {
+    el.innerHTML = '<div class="leader-list">' + LB_COUNTRIES.map((c,i) => `
+      <div class="country-rank-row">
+        <div class="leader-rank${i<3?' top':''}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)}</div>
+        <div class="leader-flag">${c.flag}</div>
+        <div class="leader-name">${c.name}</div>
+        <div class="cr-bar"><div class="cr-bar-fill" style="width:${c.pct}%"></div></div>
+        <div class="cr-score">$${(c.score/1000).toFixed(1)}K</div>
+      </div>
+    `).join('') + '</div>';
+  } else {
+    el.innerHTML = '<div class="leader-list">' + LB_PLAYERS.map(p => `
+      <div class="leader-row">
+        <div class="leader-rank${['🥇','🥈','🥉'].includes(p.rank)?' top':''}">${p.rank}</div>
+        <div class="leader-flag">${p.flag}</div>
+        <div class="leader-name">${p.name}</div>
+        <div class="leader-profit">${p.profit}</div>
+        ${p.badge?`<div class="leader-badge">${p.badge}</div>`:''}
+      </div>
+    `).join('') + '</div>';
+  }
+}
+
+// ════════════════════════════════════
+// STATE & WALLET
+// ════════════════════════════════════
+const STATE = {wallet:null,provider:null,signer:null,nickname:'',flag:'🎭',country:null,balance:0};
+const USDC_ADDR = '0x036CbD53842c5426634e7929541eC2318f3dCF7e';
 const USDC_ABI = ['function balanceOf(address) view returns (uint256)','function decimals() view returns (uint8)'];
 
-// ══════════════════════════════════════
-// NAV
-// ══════════════════════════════════════
-function goTo(id) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+function switchPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.bnav-item').forEach(b=>b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
   window.scrollTo(0,0);
 }
-function openModal(id) { document.getElementById(id).classList.add('open'); }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
-// ══════════════════════════════════════
-// WALLET
-// ══════════════════════════════════════
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+
 async function connectWallet() {
   try {
-    if (!window.ethereum) {
-      alert('MetaMask not found.\nPlease install MetaMask or use a Web3-enabled browser.');
-      return;
-    }
+    if (!window.ethereum){alert('Please install MetaMask or use a Web3 browser.');return;}
     showToast('🔗 Connecting...');
-    const accounts = await window.ethereum.request({ method:'eth_requestAccounts' });
+    const accounts = await window.ethereum.request({method:'eth_requestAccounts'});
     await switchToBaseSepolia();
     STATE.provider = new ethers.BrowserProvider(window.ethereum);
     STATE.signer = await STATE.provider.getSigner();
@@ -709,146 +1015,132 @@ async function connectWallet() {
     await refreshBalance();
     updateWalletUI();
     checkReferralCode();
-    const saved = localStorage.getItem('ipl_nick_'+STATE.wallet);
-    if (saved) {
-      const d = JSON.parse(saved);
-      STATE.nickname = d.nick; STATE.flag = d.flag;
-      updatePlayerUI(); goTo('lobby');
-    } else {
-      openModal('nick-modal');
-    }
-    showToast('✅ Wallet connected!');
-  } catch(e) { showToast('❌ ' + (e.message||'Failed')); }
+    loadProfile();
+    showToast('✅ Connected!');
+  } catch(e){showToast('❌ '+(e.message||'Failed'));}
 }
 
 async function switchToBaseSepolia() {
-  try {
-    await window.ethereum.request({ method:'wallet_switchEthereumChain', params:[{chainId:'0x14A34'}] });
-  } catch(e) {
-    if (e.code===4902) {
-      await window.ethereum.request({ method:'wallet_addEthereumChain', params:[{
-        chainId:'0x14A34', chainName:'Base Sepolia Testnet',
-        nativeCurrency:{name:'ETH',symbol:'ETH',decimals:18},
-        rpcUrls:['https://sepolia.base.org'],
-        blockExplorerUrls:['https://sepolia.basescan.org']
-      }]});
-    }
-  }
+  try{await window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x14A34'}]});}
+  catch(e){if(e.code===4902)await window.ethereum.request({method:'wallet_addEthereumChain',params:[{chainId:'0x14A34',chainName:'Base Sepolia Testnet',nativeCurrency:{name:'ETH',symbol:'ETH',decimals:18},rpcUrls:['https://sepolia.base.org'],blockExplorerUrls:['https://sepolia.basescan.org']}]});}
 }
 
 async function refreshBalance() {
-  if (!STATE.wallet||!STATE.provider) return;
-  try {
-    const usdc = new ethers.Contract(USDC_ADDRESS, USDC_ABI, STATE.provider);
-    const [bal, dec] = await Promise.all([usdc.balanceOf(STATE.wallet), usdc.decimals()]);
-    STATE.balance = parseFloat(ethers.formatUnits(bal, dec));
-    document.getElementById('lobby-balance').textContent = '$'+STATE.balance.toFixed(2);
-  } catch { document.getElementById('lobby-balance').textContent = '$0.00'; }
+  if(!STATE.wallet||!STATE.provider)return;
+  try{
+    const usdc=new ethers.Contract(USDC_ADDR,USDC_ABI,STATE.provider);
+    const[bal,dec]=await Promise.all([usdc.balanceOf(STATE.wallet),usdc.decimals()]);
+    STATE.balance=parseFloat(ethers.formatUnits(bal,dec));
+    document.getElementById('lobby-balance').textContent='$'+STATE.balance.toFixed(2);
+  }catch{document.getElementById('lobby-balance').textContent='$0.00';}
+}
+
+function saveProfile() {
+  if(!STATE.wallet)return;
+  localStorage.setItem('ipl_profile_'+STATE.wallet, JSON.stringify({nick:STATE.nickname,flag:STATE.flag,country:STATE.country}));
+}
+
+function loadProfile() {
+  const saved = localStorage.getItem('ipl_profile_'+STATE.wallet);
+  if (saved) {
+    const d = JSON.parse(saved);
+    STATE.nickname = d.nick; STATE.flag = d.flag; STATE.country = d.country;
+    updatePlayerUI();
+    switchPage('lobby', null);
+  } else {
+    showCountrySelect(false);
+  }
 }
 
 function updateWalletUI() {
-  if (!STATE.wallet) return;
-  const short = STATE.wallet.slice(0,6)+'...'+STATE.wallet.slice(-4);
-  document.getElementById('wallet-btn').textContent = short;
-  document.getElementById('wallet-btn').classList.add('connected');
-  document.getElementById('lobby-addr').textContent = short;
-  document.getElementById('ref-link').textContent = 'ipl-beta-khaki.vercel.app?ref='+STATE.wallet.slice(2,10);
+  if(!STATE.wallet)return;
+  const short=STATE.wallet.slice(0,6)+'...'+STATE.wallet.slice(-4);
+  const btn=document.getElementById('wallet-btn');
+  btn.textContent=short; btn.classList.add('connected');
+  document.getElementById('lobby-addr').textContent=short;
+  document.getElementById('ref-link').textContent='ipl-beta-khaki.vercel.app?ref='+STATE.wallet.slice(2,10);
 }
 
 function updatePlayerUI() {
-  document.getElementById('lobby-flag').textContent = STATE.flag;
-  document.getElementById('lobby-nick').textContent = STATE.nickname;
-  document.getElementById('my-avatar').textContent = STATE.flag;
-  document.getElementById('my-game-nick').textContent = STATE.nickname+' (YOU)';
+  document.getElementById('lobby-flag').textContent=STATE.flag;
+  document.getElementById('lobby-nick').textContent=STATE.nickname||'Anonymous';
+  document.getElementById('my-avatar').textContent=STATE.flag;
+  document.getElementById('my-game-nick').textContent=(STATE.nickname||'You')+' (YOU)';
+  document.getElementById('profile-flag').textContent=STATE.flag;
+  document.getElementById('profile-nick').textContent=(STATE.nickname||'ANONYMOUS').toUpperCase();
+  document.getElementById('profile-country').textContent=STATE.country?STATE.country.name:'Select your country';
+  if(STATE.country){
+    document.getElementById('my-nation-rank').innerHTML=`<div style="font-size:32px;margin-bottom:6px">${STATE.flag}</div><div style="font-family:'Bebas Neue',monospace;font-size:20px;color:var(--gold)">${STATE.country.name}</div><div style="font-size:12px;color:var(--neon);margin-top:4px">#2 Global · 189 Players</div>`;
+  }
 }
 
-// ══════════════════════════════════════
-// NICK / FLAG
-// ══════════════════════════════════════
-let selFlag='', selFlagCode='';
-function selectFlag(el,flag,code) {
-  document.querySelectorAll('.flag-btn').forEach(b=>b.classList.remove('selected'));
-  el.classList.add('selected'); selFlag=flag; selFlagCode=code;
+// ════════════════════════════════════
+// NICK EDIT
+// ════════════════════════════════════
+function openEditNick() {
+  document.getElementById('edit-nick-input').value = STATE.nickname || '';
+  openModal('edit-modal');
 }
-function confirmIdentity() {
-  const nick = document.getElementById('nick-input').value.trim();
-  if (!nick) { alert('Enter a nickname'); return; }
-  if (!selFlag) { alert('Select your country'); return; }
-  STATE.nickname=nick; STATE.flag=selFlag;
-  localStorage.setItem('ipl_nick_'+STATE.wallet, JSON.stringify({nick,flag:selFlag,flagCode:selFlagCode}));
-  updatePlayerUI(); closeModal('nick-modal'); goTo('lobby');
+function saveNick() {
+  const nick = document.getElementById('edit-nick-input').value.trim();
+  if (!nick){alert('Enter a nickname');return;}
+  STATE.nickname = nick;
+  saveProfile(); updatePlayerUI(); closeModal('edit-modal');
+  showToast('✅ Nickname updated!');
 }
 
-// ══════════════════════════════════════
-// REFERRAL
-// ══════════════════════════════════════
-function checkReferralCode() {
-  const ref = new URLSearchParams(window.location.search).get('ref');
-  if (ref) { localStorage.setItem('ipl_ref',ref); showToast('🎁 Referral applied: '+ref); }
-}
-function copyRefLink() {
-  const link = 'https://'+document.getElementById('ref-link').textContent;
-  navigator.clipboard.writeText(link).then(()=>showToast('✅ Copied!')).catch(()=>showToast('✅ Copied!'));
-}
+// ════════════════════════════════════
+// REFERRAL & GAME
+// ════════════════════════════════════
+function checkReferralCode(){const ref=new URLSearchParams(window.location.search).get('ref');if(ref){localStorage.setItem('ipl_ref',ref);showToast('🎁 Referral: '+ref);}}
+function copyRefLink(){const l='https://'+document.getElementById('ref-link').textContent;navigator.clipboard.writeText(l).then(()=>showToast('✅ '+T('copy')+'!')).catch(()=>showToast('✅ '+T('copy')+'!'));}
 
-// ══════════════════════════════════════
-// DEPOSIT / WITHDRAW
-// ══════════════════════════════════════
-function showDeposit() {
-  if (!STATE.wallet) { openModal('wallet-modal'); return; }
-  const amt = prompt('Deposit USDC amount:');
-  if (!amt||isNaN(amt)) return;
-  showToast('⏳ Deploy contract to activate...');
-}
-function showWithdraw() {
-  if (!STATE.wallet) { openModal('wallet-modal'); return; }
-  showToast('⏳ Deploy contract to activate...');
-}
+function onEnter(){showCountrySelect(false);}
+function showDeposit(){if(!STATE.wallet){openModal('wallet-modal');return;}showToast('⏳ Contract pending deploy...');}
+function showWithdraw(){if(!STATE.wallet){openModal('wallet-modal');return;}showToast('⏳ Contract pending deploy...');}
 
-// ══════════════════════════════════════
-// GAME
-// ══════════════════════════════════════
-function joinTable(type, stakes) {
-  if (!STATE.wallet) { openModal('wallet-modal'); return; }
-  document.getElementById('game-stakes-label').textContent = '6-Max · '+stakes;
-  const rakeInfo = RAKE_INFO[currentStake];
-  document.getElementById('game-rake-label').textContent = rakeInfo.rake+' cap '+rakeInfo.cap;
-  showToast('🎮 Joining table...'); setTimeout(()=>goTo('game-table'), 600);
+function joinTable(type,stakes){
+  if(!STATE.wallet){openModal('wallet-modal');return;}
+  if(!STATE.country){showCountrySelect(false);return;}
+  document.getElementById('game-stakes-label').textContent='6-Max · '+stakes;
+  document.getElementById('game-rake-label').textContent=RAKE_INFO[currentStake].r+' cap '+RAKE_INFO[currentStake].cap;
+  showToast('🎮 Joining...');
+  setTimeout(()=>switchPage('game-table',null),600);
 }
-function sendAction(action) { showToast('📤 '+action.toUpperCase()); }
-function sendChat() {
-  const input = document.getElementById('chat-input');
-  const msg = input.value.trim(); if (!msg) return;
-  const div = document.createElement('div'); div.className='chat-msg';
+function joinCurrentTable(){
+  if(!STATE.wallet){openModal('wallet-modal');return;}
+  switchPage('game-table',null);
+}
+function sendAction(a){showToast('📤 '+a.toUpperCase());}
+function sendChat(){
+  const inp=document.getElementById('chat-input');
+  const msg=inp.value.trim();if(!msg)return;
+  const div=document.createElement('div');div.className='chat-msg';
   div.innerHTML=`<span class="cm-flag">${STATE.flag||'🎭'}</span><span class="cm-nick">${STATE.nickname||'You'}</span><span class="cm-text">${msg}</span>`;
-  const msgs = document.getElementById('chat-messages');
-  msgs.appendChild(div); msgs.scrollTop=msgs.scrollHeight; input.value='';
+  const msgs=document.getElementById('chat-messages');msgs.appendChild(div);msgs.scrollTop=msgs.scrollHeight;inp.value='';
 }
 
-// ══════════════════════════════════════
+// ════════════════════════════════════
 // TOAST
-// ══════════════════════════════════════
+// ════════════════════════════════════
 let toastTimer;
-function showToast(msg) {
-  const t = document.getElementById('tx-toast');
-  t.textContent=msg; t.classList.add('show');
-  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),3000);
-}
+function showToast(msg){const t=document.getElementById('tx-toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),3000);}
 
-// ══════════════════════════════════════
+// ════════════════════════════════════
 // INIT
-// ══════════════════════════════════════
-window.addEventListener('load', () => {
+// ════════════════════════════════════
+window.addEventListener('load',()=>{
+  initLangSwitchers();
+  applyLang();
   renderTables('micro');
-  if (window.ethereum) {
-    window.ethereum.request({method:'eth_accounts'}).then(accounts => {
-      if (accounts.length>0) {
+  renderLeaderboard('player');
+  if(window.ethereum){
+    window.ethereum.request({method:'eth_accounts'}).then(accounts=>{
+      if(accounts.length>0){
         STATE.wallet=accounts[0];
         STATE.provider=new ethers.BrowserProvider(window.ethereum);
         STATE.provider.getSigner().then(s=>{STATE.signer=s;});
-        refreshBalance(); updateWalletUI();
-        const saved=localStorage.getItem('ipl_nick_'+STATE.wallet);
-        if (saved) { const d=JSON.parse(saved); STATE.nickname=d.nick; STATE.flag=d.flag; updatePlayerUI(); }
+        refreshBalance();updateWalletUI();loadProfile();
       }
     });
   }
