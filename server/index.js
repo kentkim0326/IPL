@@ -122,9 +122,33 @@ io.on('connection', (socket) => {
     const p = players[socket.id];
     if (p && tables[p.tableId]) {
       const table = tables[p.tableId];
-      table.players = table.players.filter(pl => pl.socketId !== socket.id);
-      io.to(p.tableId).emit('player_left', { nick: p.nick });
-      io.to(p.tableId).emit('table_update', sanitizeTable(table, null));
+      const pl = table.players.find(x => x.socketId === socket.id);
+      const handInProgress = table.phase && table.phase !== 'waiting' && table.phase !== 'showdown';
+
+      if (pl && handInProgress && !pl.folded) {
+        // 핸드 진행 중 연결 끊김 → 자동 폴드 (팟에 넣은 칩은 몰수 = 표준 규칙)
+        // "질 것 같으니 끄고 나가기"로 이득 볼 수 없게 함
+        pl.folded = true;
+        pl.disconnected = true;
+        io.to(p.tableId).emit('player_left', { nick: p.nick, reason: 'disconnect_fold' });
+
+        const pIdx = table.players.findIndex(x => x.socketId === socket.id);
+        if (table.turnIndex === pIdx) {
+          // 자기 차례에 끊김 → 즉시 폴드로 진행
+          clearTurnTimer(p.tableId);
+          handleAction(p.tableId, pIdx, 'fold', 0);
+        } else {
+          io.to(p.tableId).emit('table_update', sanitizeTable(table, null));
+          checkHandOver(p.tableId);
+        }
+        // 소켓 매핑만 정리, 좌석은 핸드 종료 후 정리
+        pl.socketId = null;
+      } else {
+        // 대기 중이거나 이미 폴드 → 좌석에서 제거해도 안전
+        table.players = table.players.filter(pl => pl.socketId !== socket.id);
+        io.to(p.tableId).emit('player_left', { nick: p.nick });
+        io.to(p.tableId).emit('table_update', sanitizeTable(table, null));
+      }
     }
     delete players[socket.id];
   });
@@ -231,16 +255,28 @@ function handleAction(tableId, pIdx, action, amount) {
   io.to(tableId).emit('table_update', sanitizeTable(table, null));
 
   // Check if hand over
-  const activePlayers = table.players.filter(p => !p.folded && !p.allIn);
-  const notFolded = table.players.filter(p => !p.folded);
-
-  if (notFolded.length === 1) {
-    endHand(tableId, notFolded[0]);
-    return;
-  }
+  if (checkHandOver(tableId)) return;
 
   // Advance turn
   advanceTurn(tableId);
+}
+
+// 남은 플레이어가 1명이면 그 사람이 팟을 가져가며 핸드 종료.
+// 디스커넥트 자동 폴드 후에도 호출되어 "끄고 나가기"가 판을 멈추지 못하게 함.
+function checkHandOver(tableId) {
+  const table = tables[tableId];
+  if (!table) return true;
+  const notFolded = table.players.filter(p => !p.folded);
+  if (notFolded.length === 1) {
+    endHand(tableId, notFolded[0]);
+    return true;
+  }
+  if (notFolded.length === 0) {
+    // 이론상 없음 (안전장치)
+    table.phase = 'waiting';
+    return true;
+  }
+  return false;
 }
 
 function advanceTurn(tableId) {
@@ -334,6 +370,9 @@ function endHand(tableId, winner) {
   // Next hand after delay
   table.dealerIndex = (table.dealerIndex + 1) % table.players.length;
   table.phase = 'waiting';
+
+  // 연결 끊긴 플레이어는 이번 판 폴드 정산 완료 → 다음 판 전에 좌석에서 제거
+  table.players = table.players.filter(p => !p.disconnected && p.socketId !== null);
 
   setTimeout(() => {
     if (tables[tableId] && tables[tableId].players.length >= 2) {
