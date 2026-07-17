@@ -72,6 +72,15 @@ appKit.subscribeAccount(async (account) => {
 // 연결 함수 전역 노출
 window.openWeb3Modal = () => appKit.open()
 window.getAppKitProvider = () => appKit.getWalletProvider()
+console.log('✅ Reown AppKit loaded')
+</script>
+<script>
+// AppKit 로드 실패 감지 (5초 후에도 없으면 경고)
+setTimeout(() => {
+  if (!window.openWeb3Modal) {
+    console.error('❌ Reown AppKit did not load — check network/domain allowlist');
+  }
+}, 5000);
 </script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap');
@@ -486,7 +495,14 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:10px 1
       <div><div class="nav-logo-text">IPL</div><div class="nav-logo-sub">INTERNATIONAL POKER LEAGUE</div></div>
     </div>
     <div class="nav-right">
-      <button class="nav-btn connected" id="wallet-btn" onclick="openModal('wallet-modal')">Connect</button>
+      <div class="lang-dropdown-wrap" id="lang-wrap-lobby">
+        <button class="lang-toggle-btn" id="lang-toggle-lobby" onclick="toggleLangDropdown('lobby')">
+          <span class="ltb-flag" id="lang-flag-lobby">🇬🇧</span>
+          <span class="ltb-arrow">▼</span>
+        </button>
+        <div class="lang-dropdown" id="lang-dd-lobby"></div>
+      </div>
+      <button class="nav-btn connected" id="wallet-btn" onclick="connectWallet()">Connect</button>
     </div>
   </nav>
   <div class="page-scroll">
@@ -495,7 +511,7 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:10px 1
         💡 <span style="color:var(--gold);font-weight:600" data-i18n="fee_notice">Fee notice:</span>
         <span data-i18n="fee_detail"> Each pot: Rake 3~5% (capped) + Referral 2% auto-paid to who invited you. Total max 5%.</span>
       </div>
-      <div class="wallet-bar" id="wallet-bar-connect" onclick="openModal('wallet-modal')" style="cursor:pointer;">
+      <div class="wallet-bar" id="wallet-bar-connect" onclick="connectWallet()" style="cursor:pointer;">
         <div class="player-identity">
           <span class="p-flag-big" id="lobby-flag">🎭</span>
           <div>
@@ -789,14 +805,86 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:10px 1
 // I18N — 8 LANGUAGES
 // ════════════════════════════════════
 const LANGS = {
-  en:{ flag:'🇬🇧', name:'EN', fullName:'English' },
-  ko:{ flag:'🇰🇷', name:'한국', fullName:'한국어' },
-  zh:{ flag:'🇨🇳', name:'中文', fullName:'中文' },
-  ja:{ flag:'🇯🇵', name:'日本', fullName:'日本語' },
-  vi:{ flag:'🇻🇳', name:'Việt', fullName:'Tiếng Việt' },
-  th:{ flag:'🇹🇭', name:'ไทย', fullName:'ภาษาไทย' },
-  tl:{ flag:'🇵🇭', name:'Fil', fullName:'Filipino' },
-  es:{ flag:'🇪🇸', name:'ES', fullName:'Español' }
+  en:{
+    view_all: 'VIEW ALL',
+    mypage: 'MY PAGE',
+    leaderboard: 'LEADERBOARD',
+    players: 'PLAYERS',
+    countries: 'COUNTRIES',
+    weekly: 'WEEKLY',
+    refer: 'REFER',
+    lobby: 'LOBBY',
+    play: 'PLAY', flag:'🇬🇧', name:'EN', fullName:'English' },
+  ko:{
+    view_all: '전체보기',
+    mypage: '마이페이지',
+    leaderboard: '리더보드',
+    players: '플레이어',
+    countries: '국가',
+    weekly: '주간',
+    refer: '추천',
+    lobby: '로비',
+    play: '플레이', flag:'🇰🇷', name:'한국', fullName:'한국어' },
+  zh:{
+    view_all: '查看全部',
+    mypage: '我的',
+    leaderboard: '排行榜',
+    players: '玩家',
+    countries: '国家',
+    weekly: '每周',
+    refer: '推荐',
+    lobby: '大厅',
+    play: '开始', flag:'🇨🇳', name:'中文', fullName:'中文' },
+  ja:{
+    view_all: 'すべて見る',
+    mypage: 'マイページ',
+    leaderboard: 'ランキング',
+    players: 'プレイヤー',
+    countries: '国',
+    weekly: '週間',
+    refer: '紹介',
+    lobby: 'ロビー',
+    play: 'プレイ', flag:'🇯🇵', name:'日本', fullName:'日本語' },
+  vi:{
+    view_all: 'XEM TẤT CẢ',
+    mypage: 'CỦA TÔI',
+    leaderboard: 'BẢNG XẾP HẠNG',
+    players: 'NGƯỜI CHƠI',
+    countries: 'QUỐC GIA',
+    weekly: 'HÀNG TUẦN',
+    refer: 'GIỚI THIỆU',
+    lobby: 'SẢNH',
+    play: 'CHƠI', flag:'🇻🇳', name:'Việt', fullName:'Tiếng Việt' },
+  th:{
+    view_all: 'ดูทั้งหมด',
+    mypage: 'ของฉัน',
+    leaderboard: 'อันดับ',
+    players: 'ผู้เล่น',
+    countries: 'ประเทศ',
+    weekly: 'รายสัปดาห์',
+    refer: 'แนะนำ',
+    lobby: 'ล็อบบี้',
+    play: 'เล่น', flag:'🇹🇭', name:'ไทย', fullName:'ภาษาไทย' },
+  tl:{
+    view_all: 'TINGNAN LAHAT',
+    mypage: 'AKIN',
+    leaderboard: 'LEADERBOARD',
+    players: 'MGA MANLALARO',
+    countries: 'BANSA',
+    weekly: 'LINGGUHAN',
+    refer: 'IREKOMENDA',
+    lobby: 'LOBBY',
+    play: 'LARO', flag:'🇵🇭', name:'Fil', fullName:'Filipino' },
+  es:{
+    view_all: 'VER TODO',
+    mypage: 'MI PERFIL',
+    leaderboard: 'CLASIFICACIÓN',
+    players: 'JUGADORES',
+    countries: 'PAÍSES',
+    weekly: 'SEMANAL',
+    refer: 'INVITAR',
+    lobby: 'LOBBY',
+    play: 'JUGAR', flag:'🇪🇸', name:'ES', fullName:'Español' }
 };
 
 const I18N = {
@@ -1355,12 +1443,21 @@ function closeModal(id){document.getElementById(id).classList.remove('open');}
 
 function connectWallet() {
   closeModal('wallet-modal');
-  if (window.openWeb3Modal) {
-    window.openWeb3Modal();
-  } else {
-    showToast('⏳ Loading wallet connector...');
-    setTimeout(() => { if(window.openWeb3Modal) window.openWeb3Modal(); }, 1000);
-  }
+  let tries = 0;
+  const tryOpen = () => {
+    if (window.openWeb3Modal) {
+      window.openWeb3Modal();
+      return;
+    }
+    tries++;
+    if (tries <= 20) {
+      if (tries === 1) showToast('⏳ Loading wallet connector...');
+      setTimeout(tryOpen, 400);
+    } else {
+      showToast('⚠️ Wallet connector failed to load. Please refresh.');
+    }
+  };
+  tryOpen();
 }
 
 // Web3Modal 연결 성공 콜백
