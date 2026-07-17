@@ -370,7 +370,7 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:10px 1
       <div class="wallet-option" onclick="connectWallet()"><div class="wallet-icon">💙</div><div><div class="wallet-name">Coinbase Wallet</div><div class="wallet-desc">Official Coinbase wallet</div></div></div>
       <div class="wallet-option" onclick="connectWallet()"><div class="wallet-icon">🔵</div><div><div class="wallet-name">WalletConnect</div><div class="wallet-desc">500+ wallets supported</div></div></div>
     </div>
-    <button style="width:100%;background:rgba(0,255,136,0.1);border:1px solid var(--neon);color:var(--neon);padding:14px;border-radius:10px;margin-top:12px;cursor:pointer;font-size:14px;font-weight:600;" onclick="enterDemoMode()">🎮 <span data-i18n="try_demo">Try Demo (no wallet needed)</span></button>
+    <button style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.2);color:var(--grey);padding:14px;border-radius:10px;margin-top:12px;cursor:pointer;font-size:14px;" onclick="enterBrowseMode()">👀 <span data-i18n="just_browse">Just look around first</span></button>
     <button class="modal-close" onclick="closeModal('wallet-modal')" data-i18n="cancel">Cancel</button>
   </div>
 </div>
@@ -435,17 +435,17 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:10px 1
         💡 <span style="color:var(--gold);font-weight:600" data-i18n="fee_notice">Fee notice:</span>
         <span data-i18n="fee_detail"> Each pot: Rake 3~5% (capped) + Referral 2% auto-paid to who invited you. Total max 5%.</span>
       </div>
-      <div class="wallet-bar">
+      <div class="wallet-bar" id="wallet-bar-connect" onclick="openModal('wallet-modal')" style="cursor:pointer;">
         <div class="player-identity">
           <span class="p-flag-big" id="lobby-flag">🎭</span>
           <div>
             <div class="p-nick-main" id="lobby-nick">Anonymous</div>
-            <div class="p-wallet-addr" id="lobby-addr">Not connected</div>
+            <div class="p-wallet-addr" id="lobby-addr">Tap to connect wallet</div>
           </div>
         </div>
         <div class="balance-display">
-          <div class="balance-num" id="lobby-balance">—</div>
-          <div class="balance-lbl">USDC · Base Sepolia</div>
+          <div class="balance-num" id="lobby-balance">🔗</div>
+          <div class="balance-lbl" data-i18n="connect_to_play">Connect to play</div>
         </div>
       </div>
       <div class="dw-btns">
@@ -760,7 +760,7 @@ const I18N = {
     my_nation:'MY NATION RANK', select_country_first:'Select your country first',
     community:'COMMUNITY', tg_desc:'Join the IPL global poker community on Telegram',
     hands:'HANDS', profit:'PROFIT', winrate:'WIN RATE', edit_profile:'Edit Profile', save:'SAVE',
-    wallet_popular:'Most popular Web3 wallet', try_demo:'Try Demo (no wallet needed)',
+    wallet_popular:'Most popular Web3 wallet', just_browse:'Just look around first', connect_to_play:'Connect to play',
     fee_notice:'Fee notice:', fee_detail:' Each pot: Rake 3~5% (capped) + Referral 2% auto-paid to who invited you. Total max 5%.',
   },
   ko:{
@@ -786,7 +786,7 @@ const I18N = {
     my_nation:'내 국가 랭킹', select_country_first:'먼저 국가를 선택하세요',
     community:'커뮤니티', tg_desc:'텔레그램 IPL 글로벌 포커 커뮤니티에 합류하세요',
     hands:'핸드', profit:'수익', winrate:'승률', edit_profile:'프로필 편집', save:'저장',
-    wallet_popular:'가장 많이 사용되는 Web3 지갑', try_demo:'데모 체험 (지갑 불필요)',
+    wallet_popular:'가장 많이 사용되는 Web3 지갑', just_browse:'먼저 둘러보기', connect_to_play:'연결하고 플레이',
     fee_notice:'수수료 안내:', fee_detail:' 팟의 레이크 3~5%(캡 적용) + 추천인에게 레퍼럴 2% 자동 지급. 총 최대 5%.',
   },
   zh:{
@@ -1270,7 +1270,7 @@ function renderLeaderboard(tab) {
 // ════════════════════════════════════
 // STATE & WALLET
 // ════════════════════════════════════
-const STATE = {wallet:null,provider:null,signer:null,nickname:'',flag:'🎭',country:null,balance:0};
+const STATE = {wallet:null,provider:null,signer:null,nickname:'',flag:'🎭',country:null,balance:0,browseMode:false};
 const USDC_ADDR = '0x036CbD53842c5426634e7929541eC2318f3dCF7e';
 const USDC_ABI = ['function balanceOf(address) view returns (uint256)','function decimals() view returns (uint8)'];
 
@@ -1288,8 +1288,7 @@ function closeModal(id){document.getElementById(id).classList.remove('open');}
 async function connectWallet() {
   try {
     if (!window.ethereum){
-      // MetaMask 없으면 데모 모드로 진입
-      enterDemoMode();
+      showToast('📱 Open in MetaMask browser or install MetaMask to play');
       return;
     }
     showToast('🔗 Connecting...');
@@ -1307,28 +1306,17 @@ async function connectWallet() {
   } catch(e){showToast('❌ '+(e.message||'Failed'));}
 }
 
-// 데모 모드 — 지갑 없이 체험
-function enterDemoMode() {
-  STATE.wallet = '0xDEMO' + Math.random().toString(16).slice(2,10);
-  STATE.balance = 1000;  // 데모 잔액 $1000
+// 구경 모드 — 지갑 없이 둘러보기만 (잔액 없음)
+function enterBrowseMode() {
+  STATE.browseMode = true;
+  STATE.wallet = null;
   closeModal('wallet-modal');
-  document.getElementById('lobby-balance').textContent = '$1,000.00';
-  const btn = document.getElementById('wallet-btn');
-  btn.textContent = '🎮 DEMO';
-  btn.classList.add('connected');
-  document.getElementById('lobby-addr').textContent = 'Demo Mode';
-  document.getElementById('ref-link').textContent = 'ipl-beta-khaki.vercel.app?ref=demo';
-  checkReferralCode();
-  // 프로필 있으면 로드, 없으면 국가선택
-  const saved = localStorage.getItem('ipl_profile_demo');
-  if (saved) {
-    const d = JSON.parse(saved);
-    STATE.nickname = d.nick; STATE.flag = d.flag; STATE.country = d.country;
-    updatePlayerUI(); switchPage('lobby', null);
-  } else {
-    showCountrySelect(false);
-  }
-  showToast('🎮 Demo mode — explore freely!');
+  // 잔액은 "Connect to play" 표시
+  document.getElementById('lobby-balance').textContent = '—';
+  document.getElementById('lobby-balance').style.fontSize = '13px';
+  document.getElementById('lobby-addr').textContent = 'Browsing';
+  switchPage('lobby', null);
+  showToast('👀 Just browsing — connect wallet to play');
 }
 
 async function switchToBaseSepolia() {
@@ -1371,6 +1359,12 @@ function updateWalletUI() {
   btn.textContent=short; btn.classList.add('connected');
   document.getElementById('lobby-addr').textContent=short;
   document.getElementById('ref-link').textContent='ipl-beta-khaki.vercel.app?ref='+STATE.wallet.slice(2,10);
+  // 연결되면 wallet-bar 클릭 비활성 + 라벨 복원
+  const wb = document.getElementById('wallet-bar-connect');
+  if(wb){ wb.onclick=null; wb.style.cursor='default'; }
+  document.getElementById('lobby-balance').style.fontSize='';
+  const bl = document.querySelector('#wallet-bar-connect .balance-lbl');
+  if(bl){ bl.textContent='USDC · Base Sepolia'; bl.removeAttribute('data-i18n'); }
 }
 
 function updatePlayerUI() {
@@ -1412,7 +1406,7 @@ function showDeposit(){if(!STATE.wallet){openModal('wallet-modal');return;}showT
 function showWithdraw(){if(!STATE.wallet){openModal('wallet-modal');return;}showToast('⏳ Contract pending deploy...');}
 
 function joinTable(type,stakes){
-  if(!STATE.wallet){openModal('wallet-modal');return;}
+  if(!STATE.wallet){showToast('🔗 Connect wallet to play');openModal('wallet-modal');return;}
   if(!STATE.country){showCountrySelect(false);return;}
   document.getElementById('game-stakes-label').textContent='6-Max · '+stakes;
   document.getElementById('game-rake-label').textContent=RAKE_INFO[currentStake].r+' cap '+RAKE_INFO[currentStake].cap;
@@ -1420,7 +1414,7 @@ function joinTable(type,stakes){
   setTimeout(()=>switchPage('game-table',null),600);
 }
 function joinCurrentTable(){
-  if(!STATE.wallet){openModal('wallet-modal');return;}
+  if(!STATE.wallet){showToast('🔗 Connect wallet to play');openModal('wallet-modal');return;}
   switchPage('game-table',null);
 }
 function sendAction(a){showToast('📤 '+a.toUpperCase());}
