@@ -1,4 +1,4 @@
-const CACHE = 'ipl-v2';
+const CACHE = 'ipl-v3';
 const ASSETS = ['/', '/index.html', '/manifest.json'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
