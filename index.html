@@ -252,19 +252,42 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:10px 1
 .fee-table td:last-child{font-family:'JetBrains Mono',monospace;color:var(--neon);}
 
 
-/* ── LANG BAR ── */
-.lang-bar {
-  display: flex; gap: 4px; padding: 8px 14px;
-  background: rgba(6,14,7,0.98);
-  border-bottom: 1px solid rgba(201,168,76,0.12);
-  overflow-x: auto; -webkit-overflow-scrolling: touch;
-  flex-shrink: 0; scrollbar-width: none;
+
+
+
+/* ── LANG DROPDOWN ── */
+.lang-dropdown-wrap { position: relative; }
+.lang-toggle-btn {
+  display: flex; align-items: center; gap: 5px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 20px; padding: 6px 10px;
+  cursor: pointer; font-size: 13px; color: var(--white);
+  white-space: nowrap;
 }
-.lang-bar::-webkit-scrollbar { display: none; }
-.lang-bar .lang-btn {
-  white-space: nowrap; flex-shrink: 0;
-  padding: 5px 10px; font-size: 11px;
+.lang-toggle-btn .ltb-flag { font-size: 18px; }
+.lang-toggle-btn .ltb-arrow { font-size: 9px; color: var(--grey); transition: transform 0.2s; }
+.lang-toggle-btn.open .ltb-arrow { transform: rotate(180deg); }
+
+.lang-dropdown {
+  display: none; position: absolute; top: calc(100% + 8px); left: 0;
+  background: #141f15; border: 1px solid rgba(201,168,76,0.25);
+  border-radius: 12px; overflow: hidden;
+  min-width: 180px; z-index: 500;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6);
 }
+.lang-dropdown.open { display: block; }
+.lang-dropdown-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 13px 16px; cursor: pointer;
+  font-size: 14px; color: var(--white);
+  transition: background 0.15s; border: none; background: none;
+  width: 100%; text-align: left;
+}
+.lang-dropdown-item:hover { background: rgba(201,168,76,0.1); }
+.lang-dropdown-item.active { background: rgba(201,168,76,0.15); color: var(--gold); }
+.lang-dropdown-item .ldi-flag { font-size: 22px; }
+.lang-dropdown-item .ldi-name { font-weight: 500; }
 
 /* ── SPLASH SCREEN ── */
 #splash {
@@ -403,7 +426,6 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:10px 1
       <button class="nav-btn connected" id="wallet-btn" onclick="openModal('wallet-modal')">Connect</button>
     </div>
   </nav>
-  <div class="lang-bar" id="lb-lang"></div>
   <div class="page-scroll">
     <div class="lobby-inner">
       <div style="background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.2);border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:11px;line-height:1.6;color:var(--grey)">
@@ -459,9 +481,17 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:10px 1
     <div style="flex:1;padding:0 10px;font-size:11px;color:var(--grey);">
       <span id="game-stakes-label">6-Max · $2/$5</span> &nbsp;|&nbsp; Rake: <span id="game-rake-label" style="color:var(--neon)">3%</span>
     </div>
-    <button class="nav-btn" onclick="switchPage('lobby',null)">← <span data-i18n="lobby">LOBBY</span></button>
+    <div style="display:flex;align-items:center;gap:6px;">
+      <div class="lang-dropdown-wrap" id="lang-wrap-game">
+        <button class="lang-toggle-btn" id="lang-toggle-game" onclick="toggleLangDropdown('game')">
+          <span class="ltb-flag" id="lang-flag-game">🇬🇧</span>
+          <span class="ltb-arrow">▼</span>
+        </button>
+        <div class="lang-dropdown" id="lang-dd-game"></div>
+      </div>
+      <button class="nav-btn" onclick="switchPage('lobby',null)">← <span data-i18n="lobby">LOBBY</span></button>
+    </div>
   </nav>
-  <div class="lang-bar" id="gt-lang"></div>
   <div class="game-body">
     <div class="poker-table">
       <div class="player-seat seat-1"><div class="p-avatar">🇯🇵</div><div class="p-nick">TokyoBluff</div><div class="p-stack">$340</div></div>
@@ -522,7 +552,6 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:10px 1
     <div class="nav-right">
       </div>
   </nav>
-  <div class="lang-bar" id="ref-lang"></div>
   <div class="page-scroll">
     <div class="ref-inner">
       <div class="ref-card">
@@ -578,7 +607,6 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:10px 1
     <div class="nav-right">
       </div>
   </nav>
-  <div class="lang-bar" id="my-lang"></div>
   <div class="page-scroll">
     <div class="mypage-inner">
       <div class="profile-card">
@@ -620,14 +648,14 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:10px 1
 // I18N — 8 LANGUAGES
 // ════════════════════════════════════
 const LANGS = {
-  en:{ flag:'🇬🇧', name:'EN' },
-  ko:{ flag:'🇰🇷', name:'한국' },
-  zh:{ flag:'🇨🇳', name:'中文' },
-  ja:{ flag:'🇯🇵', name:'日本' },
-  vi:{ flag:'🇻🇳', name:'Việt' },
-  th:{ flag:'🇹🇭', name:'ไทย' },
-  tl:{ flag:'🇵🇭', name:'Fil' },
-  es:{ flag:'🇪🇸', name:'ES' }
+  en:{ flag:'🇬🇧', name:'EN', fullName:'English' },
+  ko:{ flag:'🇰🇷', name:'한국', fullName:'한국어' },
+  zh:{ flag:'🇨🇳', name:'中文', fullName:'中文' },
+  ja:{ flag:'🇯🇵', name:'日本', fullName:'日本語' },
+  vi:{ flag:'🇻🇳', name:'Việt', fullName:'Tiếng Việt' },
+  th:{ flag:'🇹🇭', name:'ไทย', fullName:'ภาษาไทย' },
+  tl:{ flag:'🇵🇭', name:'Fil', fullName:'Filipino' },
+  es:{ flag:'🇪🇸', name:'ES', fullName:'Español' }
 };
 
 const I18N = {
@@ -869,12 +897,57 @@ function renderLangSwitcher(container) {
   ).join('');
 }
 
-function initLangSwitchers() {
-  ['lb-lang','gt-lang','ref-lang','my-lang'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) { el.classList.add('lang-switcher-group'); renderLangSwitcher(el); }
+
+const LANG_PANELS = ['lobby','game','ref','my'];
+
+function renderAllDropdowns() {
+  LANG_PANELS.forEach(id => {
+    const dd = document.getElementById('lang-dd-' + id);
+    if (!dd) return;
+    dd.innerHTML = Object.entries(LANGS).map(([code, info]) =>
+      `<button class="lang-dropdown-item${code===curLang?' active':''}" onclick="setLangFromDD('${code}')">
+        <span class="ldi-flag">${info.flag}</span>
+        <span class="ldi-name">${info.fullName || info.name}</span>
+      </button>`
+    ).join('');
+  });
+  // 현재 언어 국기 표시
+  LANG_PANELS.forEach(id => {
+    const fl = document.getElementById('lang-flag-' + id);
+    if (fl) fl.textContent = LANGS[curLang].flag;
   });
 }
+
+function toggleLangDropdown(id) {
+  const dd = document.getElementById('lang-dd-' + id);
+  const btn = document.getElementById('lang-toggle-' + id);
+  const isOpen = dd.classList.contains('open');
+  // 모든 닫기
+  document.querySelectorAll('.lang-dropdown').forEach(d => d.classList.remove('open'));
+  document.querySelectorAll('.lang-toggle-btn').forEach(b => b.classList.remove('open'));
+  if (!isOpen) { dd.classList.add('open'); btn.classList.add('open'); }
+}
+
+function setLangFromDD(code) {
+  setLang(code);
+  // 모든 드롭다운 닫기
+  document.querySelectorAll('.lang-dropdown').forEach(d => d.classList.remove('open'));
+  document.querySelectorAll('.lang-toggle-btn').forEach(b => b.classList.remove('open'));
+  renderAllDropdowns();
+}
+
+// 외부 클릭시 닫기
+document.addEventListener('click', e => {
+  if (!e.target.closest('.lang-dropdown-wrap')) {
+    document.querySelectorAll('.lang-dropdown').forEach(d => d.classList.remove('open'));
+    document.querySelectorAll('.lang-toggle-btn').forEach(b => b.classList.remove('open'));
+  }
+});
+
+function initLangSwitchers() {
+  renderAllDropdowns();
+}
+
 
 // ════════════════════════════════════
 // COUNTRIES (185개)
