@@ -22,6 +22,57 @@
 <meta name="theme-color" content="#060e07">
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+
+<!-- Reown AppKit (WalletConnect + Coinbase + 500 wallets) -->
+<script type="module">
+import { createAppKit } from 'https://esm.sh/@reown/appkit@1.6.8'
+import { EthersAdapter } from 'https://esm.sh/@reown/appkit-adapter-ethers@1.6.8'
+import { baseSepolia } from 'https://esm.sh/@reown/appkit/networks'
+
+const projectId = '782d64073f3c6fbe72ab5f8e778ba8e7'
+
+const metadata = {
+  name: 'IPL Holdem',
+  description: 'International Poker League — Anonymous Crypto Poker',
+  url: 'https://ipl-beta-khaki.vercel.app',
+  icons: ['https://ipl-beta-khaki.vercel.app/favicon.ico']
+}
+
+const appKit = createAppKit({
+  adapters: [new EthersAdapter()],
+  networks: [baseSepolia],
+  defaultNetwork: baseSepolia,
+  projectId,
+  metadata,
+  features: {
+    analytics: false,
+    email: true,        // 이메일 로그인 (Coinbase Smart Wallet 유사)
+    socials: ['google', 'apple'],  // 소셜 로그인
+    emailShowWallets: true
+  },
+  themeMode: 'dark',
+  themeVariables: {
+    '--w3m-accent': '#c9a84c',
+    '--w3m-border-radius-master': '4px'
+  }
+})
+
+// 전역 노출 — 기존 코드에서 호출
+window.iplAppKit = appKit
+
+// 연결 상태 구독
+appKit.subscribeAccount(async (account) => {
+  if (account.isConnected && account.address) {
+    window.onWalletConnected(account.address)
+  } else {
+    window.onWalletDisconnected && window.onWalletDisconnected()
+  }
+})
+
+// 연결 함수 전역 노출
+window.openWeb3Modal = () => appKit.open()
+window.getAppKitProvider = () => appKit.getWalletProvider()
+</script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap');
 :root {
@@ -364,10 +415,20 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:10px 1
     <div class="modal-title" data-i18n="connect_wallet">Connect Wallet</div>
     <div class="modal-sub" data-i18n="connect_sub">No sign-up. No email. Wallet = your identity.</div>
     <div class="wallet-options">
-      <div class="wallet-option" onclick="connectWallet()"><div class="wallet-icon">🦊</div><div><div class="wallet-name">MetaMask</div><div class="wallet-desc" data-i18n="wallet_popular">Most popular Web3 wallet</div></div></div>
-      <div class="wallet-option" onclick="connectWallet()"><div class="wallet-icon">🌈</div><div><div class="wallet-name">Rainbow</div><div class="wallet-desc">Mobile-first wallet</div></div></div>
-      <div class="wallet-option" onclick="connectWallet()"><div class="wallet-icon">💙</div><div><div class="wallet-name">Coinbase Wallet</div><div class="wallet-desc">Official Coinbase wallet</div></div></div>
-      <div class="wallet-option" onclick="connectWallet()"><div class="wallet-icon">🔵</div><div><div class="wallet-name">WalletConnect</div><div class="wallet-desc">500+ wallets supported</div></div></div>
+      <div class="wallet-option" onclick="connectWallet()" style="border-color:var(--gold);background:rgba(201,168,76,0.08);">
+        <div class="wallet-icon">🔗</div>
+        <div>
+          <div class="wallet-name" data-i18n="connect_any">Connect Any Wallet</div>
+          <div class="wallet-desc">MetaMask · Coinbase · Rainbow · 500+</div>
+        </div>
+      </div>
+      <div class="wallet-option" onclick="connectWallet()">
+        <div class="wallet-icon">✉️</div>
+        <div>
+          <div class="wallet-name" data-i18n="email_login">Email / Google / Apple</div>
+          <div class="wallet-desc" data-i18n="no_app">No wallet app needed</div>
+        </div>
+      </div>
     </div>
     <button style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.2);color:var(--grey);padding:14px;border-radius:10px;margin-top:12px;cursor:pointer;font-size:14px;" onclick="enterBrowseMode()">👀 <span data-i18n="just_browse">Just look around first</span></button>
     <button class="modal-close" onclick="closeModal('wallet-modal')" data-i18n="cancel">Cancel</button>
@@ -762,7 +823,7 @@ const I18N = {
     my_nation:'MY NATION RANK', select_country_first:'Select your country first',
     community:'COMMUNITY', tg_desc:'Join the IPL global poker community on Telegram',
     hands:'HANDS', profit:'PROFIT', winrate:'WIN RATE', edit_profile:'Edit Profile', save:'SAVE',
-    wallet_popular:'Most popular Web3 wallet', just_browse:'Just look around first', connect_to_play:'Connect to play',
+    wallet_popular:'Most popular Web3 wallet', just_browse:'Just look around first', connect_to_play:'Connect to play', connect_any:'Connect Any Wallet', email_login:'Email / Google / Apple', no_app:'No wallet app needed',
     fee_notice:'Fee notice:', fee_detail:' Each pot: Rake 3~5% (capped) + Referral 2% auto-paid to who invited you. Total max 5%.',
   },
   ko:{
@@ -788,7 +849,7 @@ const I18N = {
     my_nation:'내 국가 랭킹', select_country_first:'먼저 국가를 선택하세요',
     community:'커뮤니티', tg_desc:'텔레그램 IPL 글로벌 포커 커뮤니티에 합류하세요',
     hands:'핸드', profit:'수익', winrate:'승률', edit_profile:'프로필 편집', save:'저장',
-    wallet_popular:'가장 많이 사용되는 Web3 지갑', just_browse:'먼저 둘러보기', connect_to_play:'연결하고 플레이',
+    wallet_popular:'가장 많이 사용되는 Web3 지갑', just_browse:'먼저 둘러보기', connect_to_play:'연결하고 플레이', connect_any:'아무 지갑이나 연결', email_login:'이메일 / 구글 / 애플', no_app:'지갑 앱 불필요',
     fee_notice:'수수료 안내:', fee_detail:' 팟의 레이크 3~5%(캡 적용) + 추천인에게 레퍼럴 2% 자동 지급. 총 최대 5%.',
   },
   zh:{
@@ -1292,34 +1353,41 @@ function switchPage(id, btn) {
 function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 
-async function connectWallet() {
+function connectWallet() {
+  closeModal('wallet-modal');
+  if (window.openWeb3Modal) {
+    window.openWeb3Modal();
+  } else {
+    showToast('⏳ Loading wallet connector...');
+    setTimeout(() => { if(window.openWeb3Modal) window.openWeb3Modal(); }, 1000);
+  }
+}
+
+// Web3Modal 연결 성공 콜백
+window.onWalletConnected = async function(address) {
+  STATE.wallet = address;
+  STATE.browseMode = false;
   try {
-    if (!window.ethereum){
-      // 모바일: MetaMask 앱 브라우저로 딥링크
-      const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
-      if (isMobile) {
-        const dappUrl = 'ipl-beta-khaki.vercel.app';
-        const mmDeepLink = 'https://metamask.app.link/dapp/' + dappUrl;
-        showToast('📱 Opening MetaMask app...');
-        window.location.href = mmDeepLink;
-        return;
-      }
-      showToast('📱 Install MetaMask extension to play');
-      return;
+    const wp = window.getAppKitProvider && window.getAppKitProvider();
+    if (wp) {
+      STATE.provider = new ethers.BrowserProvider(wp);
+      STATE.signer = await STATE.provider.getSigner();
     }
-    showToast('🔗 Connecting...');
-    const accounts = await window.ethereum.request({method:'eth_requestAccounts'});
-    await switchToBaseSepolia();
-    STATE.provider = new ethers.BrowserProvider(window.ethereum);
-    STATE.signer = await STATE.provider.getSigner();
-    STATE.wallet = accounts[0];
-    closeModal('wallet-modal');
-    await refreshBalance();
-    updateWalletUI();
-    checkReferralCode();
-    loadProfile();
-    showToast('✅ Connected!');
-  } catch(e){showToast('❌ '+(e.message||'Failed'));}
+  } catch(e) { console.log('provider err', e); }
+  closeModal('wallet-modal');
+  await refreshBalance();
+  updateWalletUI();
+  checkReferralCode();
+  loadProfile();
+  showToast('✅ Connected!');
+}
+
+window.onWalletDisconnected = function() {
+  STATE.wallet = null;
+  STATE.provider = null;
+  STATE.signer = null;
+  const btn = document.getElementById('wallet-btn');
+  if (btn) { btn.textContent = 'Connect'; }
 }
 
 // 구경 모드 — 지갑 없이 둘러보기만 (잔액 없음)
@@ -1347,7 +1415,8 @@ async function refreshBalance() {
     const[bal,dec]=await Promise.all([usdc.balanceOf(STATE.wallet),usdc.decimals()]);
     STATE.balance=parseFloat(ethers.formatUnits(bal,dec));
     document.getElementById('lobby-balance').textContent='$'+STATE.balance.toFixed(2);
-  }catch{document.getElementById('lobby-balance').textContent='$0.00';}
+    document.getElementById('lobby-balance').style.fontSize='';
+  }catch(e){document.getElementById('lobby-balance').textContent='$0.00';}
 }
 
 function saveProfile() {
@@ -1488,16 +1557,7 @@ window.addEventListener('load',()=>{
   renderTables('micro');
   renderLeaderboard('player');
   setLbTab2('player', document.querySelector('#leaderboard-page .lb-tab'));
-  if(window.ethereum){
-    window.ethereum.request({method:'eth_accounts'}).then(accounts=>{
-      if(accounts.length>0){
-        STATE.wallet=accounts[0];
-        STATE.provider=new ethers.BrowserProvider(window.ethereum);
-        STATE.provider.getSigner().then(s=>{STATE.signer=s;});
-        refreshBalance();updateWalletUI();loadProfile();
-      }
-    });
-  }
+  // AppKit handles auto-reconnect via subscribeAccount
   checkReferralCode();
 });
 </script>
