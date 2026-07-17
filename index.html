@@ -21,9 +21,10 @@
 
 <!-- Reown AppKit (WalletConnect + Coinbase + 500 wallets) -->
 <script type="module">
-import { createAppKit } from 'https://esm.sh/@reown/appkit@1.6.8'
-import { EthersAdapter } from 'https://esm.sh/@reown/appkit-adapter-ethers@1.6.8'
-import { baseSepolia } from 'https://esm.sh/@reown/appkit/networks'
+try {
+const { createAppKit } = await import('https://esm.sh/@reown/appkit@1.6.8')
+const { EthersAdapter } = await import('https://esm.sh/@reown/appkit-adapter-ethers@1.6.8')
+const { baseSepolia } = await import('https://esm.sh/@reown/appkit/networks')
 
 const projectId = '782d64073f3c6fbe72ab5f8e778ba8e7'
 
@@ -68,7 +69,12 @@ appKit.subscribeAccount(async (account) => {
 // 연결 함수 전역 노출
 window.openWeb3Modal = () => appKit.open()
 window.getAppKitProvider = () => appKit.getWalletProvider()
+window.iplWalletReady = true
 console.log('✅ Reown AppKit loaded')
+} catch (err) {
+  console.error('❌ AppKit load failed:', err)
+  window.iplWalletError = String(err && err.message || err)
+}
 </script>
 <script>
 // AppKit 로드 실패 감지 (5초 후에도 없으면 경고)
@@ -329,11 +335,12 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:10px 1
 .lang-toggle-btn.open .ltb-arrow { transform: rotate(180deg); }
 
 .lang-dropdown {
-  display: none; position: absolute; top: calc(100% + 8px); left: 0;
+  display: none; position: absolute; top: calc(100% + 8px); right: 0;
   background: #141f15; border: 1px solid rgba(201,168,76,0.25);
   border-radius: 12px; overflow: hidden;
-  min-width: 180px; z-index: 500;
+  min-width: 180px; max-width: calc(100vw - 32px); z-index: 9999;
   box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+  max-height: 70vh; overflow-y: auto;
 }
 .lang-dropdown.open { display: block; }
 .lang-dropdown-item {
@@ -1461,12 +1468,16 @@ function connectWallet() {
       window.openWeb3Modal();
       return;
     }
+    if (window.iplWalletError) {
+      showToast('⚠️ ' + window.iplWalletError.slice(0,80));
+      return;
+    }
     tries++;
-    if (tries <= 20) {
+    if (tries <= 25) {
       if (tries === 1) showToast('⏳ Loading wallet connector...');
       setTimeout(tryOpen, 400);
     } else {
-      showToast('⚠️ Wallet connector failed to load. Please refresh.');
+      showToast('⚠️ Connector failed. ' + (window.iplWalletError || 'Check connection & refresh.'));
     }
   };
   tryOpen();
