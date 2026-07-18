@@ -1261,7 +1261,7 @@ function filterCountries(q) {
 function renderCountryGrid(list) {
   const grid = document.getElementById('country-grid');
   grid.innerHTML = list.map(c =>
-    `<div class="country-btn${selectedCountry && selectedCountry.n===c.n?' selected':''}" onclick="selectCountry(this,'${c.c}','${c.n}')">
+    `<div class="country-btn${selectedCountry && selectedCountry.name===c.n?' selected':''}" onclick="selectCountry(this,'${c.c}','${c.n}')">
       <span class="cflag">${c.c}</span>
       <span class="cname">${c.n}</span>
     </div>`
@@ -1287,6 +1287,11 @@ function confirmCountry() {
   document.getElementById('country-screen').classList.add('hidden');
   if (fromMyPage) {
     switchPage('mypage', null);
+  } else if (STATE.wallet) {
+    // 이미 지갑 연결됨 → 지갑 모달 대신 로비로
+    updateWalletUI();
+    switchPage('lobby', null);
+    showToast('✅ ' + (STATE.nickname || 'Ready') + ' · ' + STATE.flag);
   } else {
     openModal('wallet-modal');
   }
