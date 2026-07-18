@@ -443,6 +443,32 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:10px 1
   </div>
 </div>
 
+<!-- ═══ BUY-IN MODAL (방 착석 전 스택 금액 선택) ═══ -->
+<div class="modal-overlay" id="buyin-modal">
+  <div class="modal-box">
+    <div class="modal-title" data-i18n="buyin_title">Take a Seat</div>
+    <div class="modal-sub" id="buyin-room-label">6-Max · High</div>
+    <div style="background:rgba(0,255,136,0.06);border:1px solid rgba(0,255,136,0.2);border-radius:10px;padding:12px;margin:12px 0;text-align:center;">
+      <div style="font-size:12px;color:var(--grey);" data-i18n="buyin_stack">Bring to table</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:32px;color:var(--neon);font-weight:700;" id="buyin-amount">$100</div>
+      <input type="range" id="buyin-slider" min="0" max="100" value="50" style="width:100%;margin-top:8px;accent-color:var(--gold);" oninput="updateBuyinAmount()"/>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--grey);font-family:'JetBrains Mono',monospace;">
+        <span id="buyin-min">$40 min</span>
+        <span id="buyin-max">$100 max</span>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--grey);margin-bottom:4px;">
+      <span data-i18n="buyin_wallet_bal">Deposited balance</span>
+      <span id="buyin-wallet-bal" style="color:var(--neon);font-family:'JetBrains Mono',monospace;">$0.00</span>
+    </div>
+    <div id="buyin-warning" style="display:none;font-size:12px;color:#ff6b6b;text-align:center;margin:8px 0;"></div>
+    <button class="cs-confirm-btn" onclick="confirmBuyin()" id="buyin-confirm-btn">
+      <span data-i18n="buyin_sit">SIT DOWN</span> · <span id="buyin-confirm-amt">$100</span>
+    </button>
+    <button class="modal-close" onclick="closeModal('buyin-modal')" data-i18n="cancel">Cancel</button>
+  </div>
+</div>
+
 <!-- ═══ EDIT NICK MODAL ═══ -->
 <div class="modal-overlay" id="edit-modal">
   <div class="modal-box">
@@ -914,6 +940,7 @@ const I18N = {
     players:'PLAYERS', countries:'COUNTRIES', weekly:'WEEKLY',
     lobby:'LOBBY', play:'PLAY', refer:'REFER', mypage:'MY PAGE',
     deposit:'↑ Deposit USDC', withdraw:'↓ Withdraw',
+    buyin_title:'Take a Seat', buyin_stack:'Bring to table', buyin_wallet_bal:'Deposited balance', buyin_sit:'SIT DOWN',
     fold:'FOLD', check:'CHECK', raise:'RAISE', send:'SEND', table_chat:'TABLE CHAT',
     my_ref_link:'MY REFERRAL LINK', copy:'COPY', invited:'INVITED', earned:'EARNED', this_week:'THIS WEEK',
     how_it_works:'HOW IT WORKS', ipl_earn:'IPL', level1:'L1 Referral', level2:'L2 Referral',
@@ -940,6 +967,7 @@ const I18N = {
     players:'선수', countries:'국가', weekly:'주간',
     lobby:'로비', play:'플레이', refer:'추천', mypage:'마이페이지',
     deposit:'↑ USDC 입금', withdraw:'↓ 출금',
+    buyin_title:'자리에 앉기', buyin_stack:'테이블에 들고 앉을 금액', buyin_wallet_bal:'예치 잔액', buyin_sit:'착석',
     fold:'폴드', check:'체크', raise:'레이즈', send:'전송', table_chat:'테이블 채팅',
     my_ref_link:'내 추천 링크', copy:'복사', invited:'초대', earned:'수익', this_week:'이번주',
     how_it_works:'작동 방식', ipl_earn:'IPL 수익', level1:'1단계 추천', level2:'2단계 추천',
@@ -1621,9 +1649,84 @@ function joinTable(type,stakes){
     return;
   }
   if(!STATE.country){showCountrySelect(false);return;}
-  showToast('🎮 Joining...');
-  setTimeout(()=>switchPage('game-table',null),600);
+  // 바이인 모달 — 얼마 들고 앉을지 먼저 결정
+  openBuyin(type, stakes);
 }
+
+// 스테이크별 바이인 범위 (min/max in USDC)
+const BUYIN_RANGE = {
+  micro: { min: 10, max: 100 },
+  mid:   { min: 100, max: 1000 },
+  high:  { min: 1000, max: 10000 },
+};
+let pendingTable = null;
+
+function openBuyin(type, stakes){
+  pendingTable = { type, stakes };
+  const range = BUYIN_RANGE[currentStake] || BUYIN_RANGE.micro;
+  document.getElementById('buyin-room-label').textContent = '6-Max · ' + stakes;
+  document.getElementById('buyin-min').textContent = '$' + range.min + ' min';
+  document.getElementById('buyin-max').textContent = '$' + range.max + ' max';
+  const bal = STATE.balance || 0;
+  document.getElementById('buyin-wallet-bal').textContent = '$' + bal.toFixed(2);
+  // 슬라이더는 0~100(%)로 두고 min~max 매핑, 잔액 한도 반영
+  const slider = document.getElementById('buyin-slider');
+  slider.value = 50;
+  updateBuyinAmount();
+  openModal('buyin-modal');
+}
+
+function buyinValueFromSlider(){
+  const range = BUYIN_RANGE[currentStake] || BUYIN_RANGE.micro;
+  const pct = parseInt(document.getElementById('buyin-slider').value) / 100;
+  let amt = Math.round(range.min + (range.max - range.min) * pct);
+  return amt;
+}
+
+function updateBuyinAmount(){
+  const amt = buyinValueFromSlider();
+  const bal = STATE.balance || 0;
+  const range = BUYIN_RANGE[currentStake] || BUYIN_RANGE.micro;
+  document.getElementById('buyin-amount').textContent = '$' + amt;
+  document.getElementById('buyin-confirm-amt').textContent = '$' + amt;
+  const warn = document.getElementById('buyin-warning');
+  const btn = document.getElementById('buyin-confirm-btn');
+  if (bal < range.min) {
+    // 예치금이 최소 바이인보다 적음 → 충전 유도
+    warn.style.display = 'block';
+    warn.textContent = '⚠️ Deposit at least $' + range.min + ' to sit down';
+    btn.style.opacity = '0.5';
+    btn.dataset.blocked = '1';
+  } else if (amt > bal) {
+    warn.style.display = 'block';
+    warn.textContent = '⚠️ Not enough balance — max $' + Math.floor(bal);
+    btn.style.opacity = '0.5';
+    btn.dataset.blocked = '1';
+  } else {
+    warn.style.display = 'none';
+    btn.style.opacity = '1';
+    btn.dataset.blocked = '0';
+  }
+}
+
+function confirmBuyin(){
+  const btn = document.getElementById('buyin-confirm-btn');
+  if (btn.dataset.blocked === '1') {
+    // 충전 필요 → 입금 화면으로
+    closeModal('buyin-modal');
+    showDeposit();
+    return;
+  }
+  const amt = buyinValueFromSlider();
+  STATE.tableStack = amt;   // 이 판에 들고 앉는 스택 (지갑 재결제 없이 이 안에서 플레이)
+  closeModal('buyin-modal');
+  // 게임 화면 스택 표시 갱신
+  const myStack = document.getElementById('my-stack');
+  if (myStack) myStack.textContent = '$' + amt;
+  showToast('🪑 Seated with $' + amt);
+  setTimeout(()=>switchPage('game-table',null),400);
+}
+
 function joinCurrentTable(){
   // 구경 모드도 게임 화면 볼 수 있음
   switchPage('game-table',null);
